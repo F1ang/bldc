@@ -1,3 +1,4 @@
+// clang-format off
 /*
 	Copyright 2016 - 2021 Benjamin Vedder	benjamin@vedder.se
 

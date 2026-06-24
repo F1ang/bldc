@@ -9,45 +9,41 @@
 #include "canard.h"
 
 #ifndef CANARD_INTERNAL_SATURATE
-#define CANARD_INTERNAL_SATURATE(x, max) ( ((x) > max) ? max : ( (-(x) > max) ? (-max) : (x) ) );
+#define CANARD_INTERNAL_SATURATE(x, max) (((x) > max) ? max : ((-(x) > max) ? (-max) : (x)));
 #endif
 
 #ifndef CANARD_INTERNAL_SATURATE_UNSIGNED
-#define CANARD_INTERNAL_SATURATE_UNSIGNED(x, max) ( ((x) >= max) ? max : (x) );
+#define CANARD_INTERNAL_SATURATE_UNSIGNED(x, max) (((x) >= max) ? max : (x));
 #endif
 
 #if defined(__GNUC__)
-# define CANARD_MAYBE_UNUSED(x) x __attribute__((unused))
+#define CANARD_MAYBE_UNUSED(x) x __attribute__((unused))
 #else
-# define CANARD_MAYBE_UNUSED(x) x
+#define CANARD_MAYBE_UNUSED(x) x
 #endif
 
-uint32_t uavcan_protocol_param_Empty_encode_internal(uavcan_protocol_param_Empty* CANARD_MAYBE_UNUSED(source),
-  void* CANARD_MAYBE_UNUSED(msg_buf),
-  uint32_t offset,
-  uint8_t CANARD_MAYBE_UNUSED(root_item))
+// 空参数结构
+
+uint32_t uavcan_protocol_param_Empty_encode_internal(uavcan_protocol_param_Empty *CANARD_MAYBE_UNUSED(source), void *CANARD_MAYBE_UNUSED(msg_buf),
+                                                     uint32_t offset, uint8_t CANARD_MAYBE_UNUSED(root_item))
 {
     return offset;
 }
 
-uint32_t uavcan_protocol_param_Empty_encode(uavcan_protocol_param_Empty* CANARD_MAYBE_UNUSED(source), void* CANARD_MAYBE_UNUSED(msg_buf))
+uint32_t uavcan_protocol_param_Empty_encode(uavcan_protocol_param_Empty *CANARD_MAYBE_UNUSED(source), void *CANARD_MAYBE_UNUSED(msg_buf))
 {
     return 0;
 }
 
-int32_t uavcan_protocol_param_Empty_decode_internal(const CanardRxTransfer* CANARD_MAYBE_UNUSED(transfer),
-  uint16_t CANARD_MAYBE_UNUSED(payload_len),
-  uavcan_protocol_param_Empty* CANARD_MAYBE_UNUSED(dest),
-  uint8_t** CANARD_MAYBE_UNUSED(dyn_arr_buf),
-  int32_t offset)
+int32_t uavcan_protocol_param_Empty_decode_internal(const CanardRxTransfer *CANARD_MAYBE_UNUSED(transfer), uint16_t CANARD_MAYBE_UNUSED(payload_len),
+                                                    uavcan_protocol_param_Empty *CANARD_MAYBE_UNUSED(dest),
+                                                    uint8_t **CANARD_MAYBE_UNUSED(dyn_arr_buf), int32_t offset)
 {
     return offset;
 }
 
-int32_t uavcan_protocol_param_Empty_decode(const CanardRxTransfer* CANARD_MAYBE_UNUSED(transfer),
-  uint16_t CANARD_MAYBE_UNUSED(payload_len),
-  uavcan_protocol_param_Empty* CANARD_MAYBE_UNUSED(dest),
-  uint8_t** CANARD_MAYBE_UNUSED(dyn_arr_buf))
+int32_t uavcan_protocol_param_Empty_decode(const CanardRxTransfer *CANARD_MAYBE_UNUSED(transfer), uint16_t CANARD_MAYBE_UNUSED(payload_len),
+                                           uavcan_protocol_param_Empty *CANARD_MAYBE_UNUSED(dest), uint8_t **CANARD_MAYBE_UNUSED(dyn_arr_buf))
 {
     return 0;
 }

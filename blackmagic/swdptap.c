@@ -23,168 +23,170 @@
 #include "general.h"
 #include "swdptap.h"
 
-enum {
-	SWDIO_STATUS_FLOAT = 0,
-	SWDIO_STATUS_DRIVE
-};
+enum { SWDIO_STATUS_FLOAT = 0, SWDIO_STATUS_DRIVE };
 
 int swdptap_init(void)
 {
-	return 0;
+    return 0;
 }
 
+// SWDIO方向
 static void swdptap_turnaround(int dir)
 {
-	static int olddir = SWDIO_STATUS_FLOAT;
+    static int olddir = SWDIO_STATUS_FLOAT;
 
-	/* Don't turnaround if direction not changing */
-	if(dir == olddir) return;
-	olddir = dir;
+    /* Don't turnaround if direction not changing */
+    if (dir == olddir)
+        return;
+    olddir = dir;
 
 #ifdef DEBUG_SWD_BITS
-	DEBUG("%s", dir ? "\n-> ":"\n<- ");
+    DEBUG("%s", dir ? "\n-> " : "\n<- ");
 #endif
 
-	if(dir == SWDIO_STATUS_FLOAT)
-		SWDIO_MODE_FLOAT();
-	gpio_set(SWCLK_PORT, SWCLK_PIN);
-	gpio_set(SWCLK_PORT, SWCLK_PIN);
-	gpio_clear(SWCLK_PORT, SWCLK_PIN);
-	if(dir == SWDIO_STATUS_DRIVE)
-		SWDIO_MODE_DRIVE();
+    if (dir == SWDIO_STATUS_FLOAT)
+        SWDIO_MODE_FLOAT();
+    gpio_set(SWCLK_PORT, SWCLK_PIN);
+    gpio_set(SWCLK_PORT, SWCLK_PIN);
+    gpio_clear(SWCLK_PORT, SWCLK_PIN);
+    if (dir == SWDIO_STATUS_DRIVE)
+        SWDIO_MODE_DRIVE();
 }
 
+// 读入 1 位数据。切换 SWDIO 为浮空→读引脚→送出 2 个时钟脉冲
 bool swdptap_bit_in(void)
 {
-	uint16_t ret;
+    uint16_t ret;
 
-	swdptap_turnaround(SWDIO_STATUS_FLOAT);
+    swdptap_turnaround(SWDIO_STATUS_FLOAT);
 
-	ret = gpio_get(SWDIO_PORT, SWDIO_PIN);
-	gpio_set(SWCLK_PORT, SWCLK_PIN);
-	gpio_set(SWCLK_PORT, SWCLK_PIN);
-	gpio_clear(SWCLK_PORT, SWCLK_PIN);
+    ret = gpio_get(SWDIO_PORT, SWDIO_PIN);
+    gpio_set(SWCLK_PORT, SWCLK_PIN);
+    gpio_set(SWCLK_PORT, SWCLK_PIN);
+    gpio_clear(SWCLK_PORT, SWCLK_PIN);
 
 #ifdef DEBUG_SWD_BITS
-	DEBUG("%d", ret?1:0);
+    DEBUG("%d", ret ? 1 : 0);
 #endif
 
-	return ret != 0;
+    return ret != 0;
 }
 
-uint32_t
-swdptap_seq_in(int ticks)
+// 写出 1 位数据。切换 SWDIO 为驱动→设值→输出 1 个时钟脉冲
+uint32_t swdptap_seq_in(int ticks)
 {
-	uint32_t index = 1;
-	uint32_t ret = 0;
-	int len = ticks;
+    uint32_t index = 1;
+    uint32_t ret = 0;
+    int len = ticks;
 
-	swdptap_turnaround(SWDIO_STATUS_FLOAT);
-	while (len--) {
-		int res;
-		res = gpio_get(SWDIO_PORT, SWDIO_PIN);
-		gpio_set(SWCLK_PORT, SWCLK_PIN);
-		if (res)
-			ret |= index;
-		index <<= 1;
-		gpio_clear(SWCLK_PORT, SWCLK_PIN);
-	}
+    swdptap_turnaround(SWDIO_STATUS_FLOAT);
+    while (len--) {
+        int res;
+        res = gpio_get(SWDIO_PORT, SWDIO_PIN);
+        gpio_set(SWCLK_PORT, SWCLK_PIN);
+        if (res)
+            ret |= index;
+        index <<= 1;
+        gpio_clear(SWCLK_PORT, SWCLK_PIN);
+    }
 
 #ifdef DEBUG_SWD_BITS
-	for (int i = 0; i < len; i++)
-		DEBUG("%d", (ret & (1 << i)) ? 1 : 0);
+    for (int i = 0; i < len; i++)
+        DEBUG("%d", (ret & (1 << i)) ? 1 : 0);
 #endif
-	return ret;
+    return ret;
 }
 
-bool
-swdptap_seq_in_parity(uint32_t *ret, int ticks)
+// 读入 ticks 位，打包为 uint32_t 返回（LSB 优先）
+bool swdptap_seq_in_parity(uint32_t *ret, int ticks)
 {
-	uint32_t index = 1;
-	uint8_t parity = 0;
-	uint32_t res = 0;
-	bool bit;
-	int len = ticks;
+    uint32_t index = 1;
+    uint8_t parity = 0;
+    uint32_t res = 0;
+    bool bit;
+    int len = ticks;
 
-	swdptap_turnaround(SWDIO_STATUS_FLOAT);
-	while (len--) {
-		bit = gpio_get(SWDIO_PORT, SWDIO_PIN);
-		gpio_set(SWCLK_PORT, SWCLK_PIN);
-		if (bit) {
-			res |= index;
-			parity ^= 1;
-		}
-		index <<= 1;
-		gpio_clear(SWCLK_PORT, SWCLK_PIN);
-	}
-	bit = gpio_get(SWDIO_PORT, SWDIO_PIN);
-	gpio_set(SWCLK_PORT, SWCLK_PIN);
-	if (bit)
-		parity ^= 1;
-	gpio_clear(SWCLK_PORT, SWCLK_PIN);
+    swdptap_turnaround(SWDIO_STATUS_FLOAT);
+    while (len--) {
+        bit = gpio_get(SWDIO_PORT, SWDIO_PIN);
+        gpio_set(SWCLK_PORT, SWCLK_PIN);
+        if (bit) {
+            res |= index;
+            parity ^= 1;
+        }
+        index <<= 1;
+        gpio_clear(SWCLK_PORT, SWCLK_PIN);
+    }
+    bit = gpio_get(SWDIO_PORT, SWDIO_PIN);
+    gpio_set(SWCLK_PORT, SWCLK_PIN);
+    if (bit)
+        parity ^= 1;
+    gpio_clear(SWCLK_PORT, SWCLK_PIN);
 #ifdef DEBUG_SWD_BITS
-	for (int i = 0; i < len; i++)
-		DEBUG("%d", (res & (1 << i)) ? 1 : 0);
+    for (int i = 0; i < len; i++)
+        DEBUG("%d", (res & (1 << i)) ? 1 : 0);
 #endif
-	*ret = res;
-	return parity;
+    *ret = res;
+    return parity;
 }
 
+// 写出 1 位数据
 void swdptap_bit_out(bool val)
 {
 #ifdef DEBUG_SWD_BITS
-	DEBUG("%d", val);
+    DEBUG("%d", val);
 #endif
 
-	swdptap_turnaround(SWDIO_STATUS_DRIVE);
+    swdptap_turnaround(SWDIO_STATUS_DRIVE);
 
-	gpio_set_val(SWDIO_PORT, SWDIO_PIN, val);
-	gpio_clear(SWCLK_PORT, SWCLK_PIN);
-	gpio_set(SWCLK_PORT, SWCLK_PIN);
-	gpio_set(SWCLK_PORT, SWCLK_PIN);
-	gpio_clear(SWCLK_PORT, SWCLK_PIN);
-}
-void
-swdptap_seq_out(uint32_t MS, int ticks)
-{
-	int data = MS & 1;
-#ifdef DEBUG_SWD_BITS
-	for (int i = 0; i < ticks; i++)
-		DEBUG("%d", (MS & (1 << i)) ? 1 : 0);
-#endif
-	swdptap_turnaround(SWDIO_STATUS_DRIVE);
-	while (ticks--) {
-		gpio_set_val(SWDIO_PORT, SWDIO_PIN, data);
-		MS >>= 1;
-		data = MS & 1;
-		gpio_set(SWCLK_PORT, SWCLK_PIN);
-		gpio_set(SWCLK_PORT, SWCLK_PIN);
-		gpio_clear(SWCLK_PORT, SWCLK_PIN);
-	}
+    gpio_set_val(SWDIO_PORT, SWDIO_PIN, val);
+    gpio_clear(SWCLK_PORT, SWCLK_PIN);
+    gpio_set(SWCLK_PORT, SWCLK_PIN);
+    gpio_set(SWCLK_PORT, SWCLK_PIN);
+    gpio_clear(SWCLK_PORT, SWCLK_PIN);
 }
 
-void
-swdptap_seq_out_parity(uint32_t MS, int ticks)
+// 从 LSB 开始逐位写出 ticks 位数据
+void swdptap_seq_out(uint32_t MS, int ticks)
 {
-	uint8_t parity = 0;
-	int data = MS & 1;
+    int data = MS & 1;
 #ifdef DEBUG_SWD_BITS
-	for (int i = 0; i < ticks; i++)
-		DEBUG("%d", (MS & (1 << i)) ? 1 : 0);
+    for (int i = 0; i < ticks; i++)
+        DEBUG("%d", (MS & (1 << i)) ? 1 : 0);
 #endif
-	swdptap_turnaround(SWDIO_STATUS_DRIVE);
+    swdptap_turnaround(SWDIO_STATUS_DRIVE);
+    while (ticks--) {
+        gpio_set_val(SWDIO_PORT, SWDIO_PIN, data);
+        MS >>= 1;
+        data = MS & 1;
+        gpio_set(SWCLK_PORT, SWCLK_PIN);
+        gpio_set(SWCLK_PORT, SWCLK_PIN);
+        gpio_clear(SWCLK_PORT, SWCLK_PIN);
+    }
+}
 
-	while (ticks--) {
-		gpio_set_val(SWDIO_PORT, SWDIO_PIN, data);
-		parity ^= MS;
-		MS >>= 1;
-		gpio_set(SWCLK_PORT, SWCLK_PIN);
-		data = MS & 1;
-		gpio_clear(SWCLK_PORT, SWCLK_PIN);
-	}
-	gpio_set_val(SWDIO_PORT, SWDIO_PIN, parity & 1);
-	gpio_clear(SWCLK_PORT, SWCLK_PIN);
-	gpio_set(SWCLK_PORT, SWCLK_PIN);
-	gpio_set(SWCLK_PORT, SWCLK_PIN);
-	gpio_clear(SWCLK_PORT, SWCLK_PIN);
+// 写出 ticks 位数据后，再写 1 位偶校验位
+void swdptap_seq_out_parity(uint32_t MS, int ticks)
+{
+    uint8_t parity = 0;
+    int data = MS & 1;
+#ifdef DEBUG_SWD_BITS
+    for (int i = 0; i < ticks; i++)
+        DEBUG("%d", (MS & (1 << i)) ? 1 : 0);
+#endif
+    swdptap_turnaround(SWDIO_STATUS_DRIVE);
+
+    while (ticks--) {
+        gpio_set_val(SWDIO_PORT, SWDIO_PIN, data);
+        parity ^= MS;
+        MS >>= 1;
+        gpio_set(SWCLK_PORT, SWCLK_PIN);
+        data = MS & 1;
+        gpio_clear(SWCLK_PORT, SWCLK_PIN);
+    }
+    gpio_set_val(SWDIO_PORT, SWDIO_PIN, parity & 1);
+    gpio_clear(SWCLK_PORT, SWCLK_PIN);
+    gpio_set(SWCLK_PORT, SWCLK_PIN);
+    gpio_set(SWCLK_PORT, SWCLK_PIN);
+    gpio_clear(SWCLK_PORT, SWCLK_PIN);
 }

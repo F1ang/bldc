@@ -20,60 +20,55 @@
 #include "general.h"
 #include "swdptap.h"
 
-uint32_t __attribute__((weak))
-swdptap_seq_in(int ticks)
+uint32_t __attribute__((weak)) swdptap_seq_in(int ticks)
 {
-	uint32_t index = 1;
-	uint32_t ret = 0;
+    uint32_t index = 1;
+    uint32_t ret = 0;
 
-	while (ticks--) {
-		if (swdptap_bit_in())
-			ret |= index;
-		index <<= 1;
-	}
+    while (ticks--) {
+        if (swdptap_bit_in())
+            ret |= index;
+        index <<= 1;
+    }
 
-	return ret;
+    return ret;
 }
 
-bool __attribute__((weak))
-swdptap_seq_in_parity(uint32_t *ret, int ticks)
+bool __attribute__((weak)) swdptap_seq_in_parity(uint32_t *ret, int ticks)
 {
-	uint32_t index = 1;
-	uint8_t parity = 0;
-	*ret = 0;
+    uint32_t index = 1;
+    uint8_t parity = 0;
+    *ret = 0;
 
-	while (ticks--) {
-		if (swdptap_bit_in()) {
-			*ret |= index;
-			parity ^= 1;
-		}
-		index <<= 1;
-	}
-	if (swdptap_bit_in())
-		parity ^= 1;
+    while (ticks--) {
+        if (swdptap_bit_in()) {
+            *ret |= index;
+            parity ^= 1;
+        }
+        index <<= 1;
+    }
+    if (swdptap_bit_in())
+        parity ^= 1;
 
-	return parity;
+    return parity;
 }
 
-void __attribute__((weak))
-swdptap_seq_out(uint32_t MS, int ticks)
+void __attribute__((weak)) swdptap_seq_out(uint32_t MS, int ticks)
 {
-	while (ticks--) {
-		swdptap_bit_out(MS & 1);
-		MS >>= 1;
-	}
+    while (ticks--) {
+        swdptap_bit_out(MS & 1);
+        MS >>= 1;
+    }
 }
 
-void __attribute__((weak))
-swdptap_seq_out_parity(uint32_t MS, int ticks)
+void __attribute__((weak)) swdptap_seq_out_parity(uint32_t MS, int ticks)
 {
-	uint8_t parity = 0;
+    uint8_t parity = 0;
 
-	while (ticks--) {
-		swdptap_bit_out(MS & 1);
-		parity ^= MS;
-		MS >>= 1;
-	}
-	swdptap_bit_out(parity & 1);
+    while (ticks--) {
+        swdptap_bit_out(MS & 1);
+        parity ^= MS;
+        MS >>= 1;
+    }
+    swdptap_bit_out(parity & 1);
 }
-

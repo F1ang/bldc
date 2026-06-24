@@ -13,8 +13,7 @@
 #include "canard.h"
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #include <uavcan/protocol/file/EntryType.h>
@@ -55,58 +54,58 @@ uavcan.protocol.file.EntryType entry_type
 uavcan.protocol.file.Path entry_full_path
 ******************************************************************************/
 
-#define UAVCAN_PROTOCOL_FILE_GETDIRECTORYENTRYINFO_ID      46
-#define UAVCAN_PROTOCOL_FILE_GETDIRECTORYENTRYINFO_NAME    "uavcan.protocol.file.GetDirectoryEntryInfo"
+#define UAVCAN_PROTOCOL_FILE_GETDIRECTORYENTRYINFO_ID 46
+#define UAVCAN_PROTOCOL_FILE_GETDIRECTORYENTRYINFO_NAME "uavcan.protocol.file.GetDirectoryEntryInfo"
 #define UAVCAN_PROTOCOL_FILE_GETDIRECTORYENTRYINFO_SIGNATURE (0x8C46E8AB568BDA79ULL)
 
-#define UAVCAN_PROTOCOL_FILE_GETDIRECTORYENTRYINFO_REQUEST_MAX_SIZE ((1640 + 7)/8)
+#define UAVCAN_PROTOCOL_FILE_GETDIRECTORYENTRYINFO_REQUEST_MAX_SIZE ((1640 + 7) / 8)
 
 // Constants
 
-typedef struct
-{
+typedef struct {
     // FieldTypes
-    uint32_t   entry_index;                   // bit len 32
-    uavcan_protocol_file_Path directory_path;                //
+    uint32_t entry_index; // bit len 32
+    uavcan_protocol_file_Path directory_path; //
 
 } uavcan_protocol_file_GetDirectoryEntryInfoRequest;
 
-extern
-uint32_t uavcan_protocol_file_GetDirectoryEntryInfoRequest_encode(uavcan_protocol_file_GetDirectoryEntryInfoRequest* source, void* msg_buf);
+extern uint32_t uavcan_protocol_file_GetDirectoryEntryInfoRequest_encode(uavcan_protocol_file_GetDirectoryEntryInfoRequest *source, void *msg_buf);
 
-extern
-int32_t uavcan_protocol_file_GetDirectoryEntryInfoRequest_decode(const CanardRxTransfer* transfer, uint16_t payload_len, uavcan_protocol_file_GetDirectoryEntryInfoRequest* dest, uint8_t** dyn_arr_buf);
+extern int32_t uavcan_protocol_file_GetDirectoryEntryInfoRequest_decode(const CanardRxTransfer *transfer, uint16_t payload_len,
+                                                                        uavcan_protocol_file_GetDirectoryEntryInfoRequest *dest,
+                                                                        uint8_t **dyn_arr_buf);
 
-extern
-uint32_t uavcan_protocol_file_GetDirectoryEntryInfoRequest_encode_internal(uavcan_protocol_file_GetDirectoryEntryInfoRequest* source, void* msg_buf, uint32_t offset, uint8_t root_item);
+extern uint32_t uavcan_protocol_file_GetDirectoryEntryInfoRequest_encode_internal(uavcan_protocol_file_GetDirectoryEntryInfoRequest *source,
+                                                                                  void *msg_buf, uint32_t offset, uint8_t root_item);
 
-extern
-int32_t uavcan_protocol_file_GetDirectoryEntryInfoRequest_decode_internal(const CanardRxTransfer* transfer, uint16_t payload_len, uavcan_protocol_file_GetDirectoryEntryInfoRequest* dest, uint8_t** dyn_arr_buf, int32_t offset);
+extern int32_t uavcan_protocol_file_GetDirectoryEntryInfoRequest_decode_internal(const CanardRxTransfer *transfer, uint16_t payload_len,
+                                                                                 uavcan_protocol_file_GetDirectoryEntryInfoRequest *dest,
+                                                                                 uint8_t **dyn_arr_buf, int32_t offset);
 
-#define UAVCAN_PROTOCOL_FILE_GETDIRECTORYENTRYINFO_RESPONSE_MAX_SIZE ((1632 + 7)/8)
+#define UAVCAN_PROTOCOL_FILE_GETDIRECTORYENTRYINFO_RESPONSE_MAX_SIZE ((1632 + 7) / 8)
 
 // Constants
 
-typedef struct
-{
+typedef struct {
     // FieldTypes
-    uavcan_protocol_file_Error error;                         //
-    uavcan_protocol_file_EntryType entry_type;                    //
-    uavcan_protocol_file_Path entry_full_path;               //
+    uavcan_protocol_file_Error error; //
+    uavcan_protocol_file_EntryType entry_type; //
+    uavcan_protocol_file_Path entry_full_path; //
 
 } uavcan_protocol_file_GetDirectoryEntryInfoResponse;
 
-extern
-uint32_t uavcan_protocol_file_GetDirectoryEntryInfoResponse_encode(uavcan_protocol_file_GetDirectoryEntryInfoResponse* source, void* msg_buf);
+extern uint32_t uavcan_protocol_file_GetDirectoryEntryInfoResponse_encode(uavcan_protocol_file_GetDirectoryEntryInfoResponse *source, void *msg_buf);
 
-extern
-int32_t uavcan_protocol_file_GetDirectoryEntryInfoResponse_decode(const CanardRxTransfer* transfer, uint16_t payload_len, uavcan_protocol_file_GetDirectoryEntryInfoResponse* dest, uint8_t** dyn_arr_buf);
+extern int32_t uavcan_protocol_file_GetDirectoryEntryInfoResponse_decode(const CanardRxTransfer *transfer, uint16_t payload_len,
+                                                                         uavcan_protocol_file_GetDirectoryEntryInfoResponse *dest,
+                                                                         uint8_t **dyn_arr_buf);
 
-extern
-uint32_t uavcan_protocol_file_GetDirectoryEntryInfoResponse_encode_internal(uavcan_protocol_file_GetDirectoryEntryInfoResponse* source, void* msg_buf, uint32_t offset, uint8_t root_item);
+extern uint32_t uavcan_protocol_file_GetDirectoryEntryInfoResponse_encode_internal(uavcan_protocol_file_GetDirectoryEntryInfoResponse *source,
+                                                                                   void *msg_buf, uint32_t offset, uint8_t root_item);
 
-extern
-int32_t uavcan_protocol_file_GetDirectoryEntryInfoResponse_decode_internal(const CanardRxTransfer* transfer, uint16_t payload_len, uavcan_protocol_file_GetDirectoryEntryInfoResponse* dest, uint8_t** dyn_arr_buf, int32_t offset);
+extern int32_t uavcan_protocol_file_GetDirectoryEntryInfoResponse_decode_internal(const CanardRxTransfer *transfer, uint16_t payload_len,
+                                                                                  uavcan_protocol_file_GetDirectoryEntryInfoResponse *dest,
+                                                                                  uint8_t **dyn_arr_buf, int32_t offset);
 
 #ifdef __cplusplus
 } // extern "C"

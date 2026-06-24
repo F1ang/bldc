@@ -9,32 +9,38 @@
 #include "canard.h"
 
 #ifndef CANARD_INTERNAL_SATURATE
-#define CANARD_INTERNAL_SATURATE(x, max) ( ((x) > max) ? max : ( (-(x) > max) ? (-max) : (x) ) );
+#define CANARD_INTERNAL_SATURATE(x, max) (((x) > max) ? max : ((-(x) > max) ? (-max) : (x)));
 #endif
 
 #ifndef CANARD_INTERNAL_SATURATE_UNSIGNED
-#define CANARD_INTERNAL_SATURATE_UNSIGNED(x, max) ( ((x) >= max) ? max : (x) );
+#define CANARD_INTERNAL_SATURATE_UNSIGNED(x, max) (((x) >= max) ? max : (x));
 #endif
 
 #if defined(__GNUC__)
-# define CANARD_MAYBE_UNUSED(x) x __attribute__((unused))
+#define CANARD_MAYBE_UNUSED(x) x __attribute__((unused))
 #else
-# define CANARD_MAYBE_UNUSED(x) x
+#define CANARD_MAYBE_UNUSED(x) x
 #endif
 
+// VESC 实时数据
+/*
+    输入电压、DQ 轴电压、MOSFET 温度、电机温度
+    DQ 轴电流、电机电流、输入电流
+    姿态数据：roll/pitch/yaw、加速度计（3轴）、陀螺仪（3轴）
+    转速（ERPM 和 RPM）、占空比、能耗（Ah/Wh 使用和回充）
+    电池电量、总电池容量、编码器位置
+    故障码、VESC ID
+*/
+
 /**
-  * @brief vesc_RTData_encode_internal
-  * @param source : pointer to source data struct
-  * @param msg_buf: pointer to msg storage
-  * @param offset: bit offset to msg storage
-  * @param root_item: for detecting if TAO should be used
-  * @retval returns offset
-  */
-uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
-  void* msg_buf,
-  uint32_t offset,
-  uint8_t CANARD_MAYBE_UNUSED(root_item),
-  bool tao_enabled)
+ * @brief vesc_RTData_encode_internal
+ * @param source : pointer to source data struct
+ * @param msg_buf: pointer to msg storage
+ * @param offset: bit offset to msg storage
+ * @param root_item: for detecting if TAO should be used
+ * @retval returns offset
+ */
+uint32_t vesc_RTData_encode_internal(vesc_RTData *source, void *msg_buf, uint32_t offset, uint8_t CANARD_MAYBE_UNUSED(root_item), bool tao_enabled)
 {
     (void)tao_enabled;
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -49,7 +55,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->volt_in;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -58,7 +64,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->volt_d;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -67,7 +73,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->volt_q;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -76,7 +82,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->temp_mos_max;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -85,7 +91,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->temp_mos_1;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -94,7 +100,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->temp_mos_2;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -103,7 +109,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->temp_mos_3;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -112,7 +118,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->temp_motor_max;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -121,7 +127,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->temp_motor_1;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -130,7 +136,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->temp_motor_2;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -139,7 +145,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->curr_motor;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -148,7 +154,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->curr_in;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -157,7 +163,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->curr_d;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -166,7 +172,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->curr_q;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -175,7 +181,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->roll;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -184,7 +190,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->pitch;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -193,7 +199,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->yaw;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -202,7 +208,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->acc_x;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -211,7 +217,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->acc_y;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -220,7 +226,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->acc_z;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -229,7 +235,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->gyro_x;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -238,7 +244,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->gyro_y;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -247,7 +253,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->gyro_z;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -256,7 +262,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->erpm;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -265,7 +271,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->rpm;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -274,7 +280,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->duty;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -283,7 +289,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->ah_used;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -292,7 +298,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->ah_charged;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -301,7 +307,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->wh_used;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -310,7 +316,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->wh_charged;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -319,7 +325,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->encoder_pos;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -328,7 +334,7 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->battery_level;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
 
     // float16 special handling
@@ -337,52 +343,47 @@ uint32_t vesc_RTData_encode_internal(vesc_RTData* source,
 #else
     tmp_float = (CANARD_USE_FLOAT16_CAST)source->battery_wh_tot;
 #endif
-    canardEncodeScalar(msg_buf, offset, 16, (void*)&tmp_float); // 32767
+    canardEncodeScalar(msg_buf, offset, 16, (void *)&tmp_float); // 32767
     offset += 16;
-    canardEncodeScalar(msg_buf, offset, 8, (void*)&source->fault_code); // 255
+    canardEncodeScalar(msg_buf, offset, 8, (void *)&source->fault_code); // 255
     offset += 8;
 
-    canardEncodeScalar(msg_buf, offset, 8, (void*)&source->vesc_id); // 255
+    canardEncodeScalar(msg_buf, offset, 8, (void *)&source->vesc_id); // 255
     offset += 8;
 
     return offset;
 }
 
 /**
-  * @brief vesc_RTData_encode
-  * @param source : Pointer to source data struct
-  * @param msg_buf: Pointer to msg storage
-  * @retval returns message length as bytes
-  */
-uint32_t vesc_RTData_encode(vesc_RTData* source, void* msg_buf, bool tao_enabled)
+ * @brief vesc_RTData_encode
+ * @param source : Pointer to source data struct
+ * @param msg_buf: Pointer to msg storage
+ * @retval returns message length as bytes
+ */
+uint32_t vesc_RTData_encode(vesc_RTData *source, void *msg_buf, bool tao_enabled)
 {
     uint32_t offset = 0;
 
     offset = vesc_RTData_encode_internal(source, msg_buf, offset, 1, tao_enabled);
 
-    return (offset + 7 ) / 8;
+    return (offset + 7) / 8;
 }
 
 /**
-  * @brief vesc_RTData_decode_internal
-  * @param transfer: Pointer to CanardRxTransfer transfer
-  * @param payload_len: Payload message length
-  * @param dest: Pointer to destination struct
-  * @param dyn_arr_buf: NULL or Pointer to memory storage to be used for dynamic arrays
-  *                     vesc_RTData dyn memory will point to dyn_arr_buf memory.
-  *                     NULL will ignore dynamic arrays decoding.
-  * @param offset: Call with 0, bit offset to msg storage
-  * @retval offset or ERROR value if < 0
-  */
-int32_t vesc_RTData_decode_internal(
-  const CanardRxTransfer* transfer,
-  uint16_t CANARD_MAYBE_UNUSED(payload_len),
-  vesc_RTData* dest,
-  uint8_t** CANARD_MAYBE_UNUSED(dyn_arr_buf),
-  int32_t offset,
-  bool tao_enabled)
+ * @brief vesc_RTData_decode_internal
+ * @param transfer: Pointer to CanardRxTransfer transfer
+ * @param payload_len: Payload message length
+ * @param dest: Pointer to destination struct
+ * @param dyn_arr_buf: NULL or Pointer to memory storage to be used for dynamic arrays
+ *                     vesc_RTData dyn memory will point to dyn_arr_buf memory.
+ *                     NULL will ignore dynamic arrays decoding.
+ * @param offset: Call with 0, bit offset to msg storage
+ * @retval offset or ERROR value if < 0
+ */
+int32_t vesc_RTData_decode_internal(const CanardRxTransfer *transfer, uint16_t CANARD_MAYBE_UNUSED(payload_len), vesc_RTData *dest,
+                                    uint8_t **CANARD_MAYBE_UNUSED(dyn_arr_buf), int32_t offset, bool tao_enabled)
 {
-	(void)tao_enabled;
+    (void)tao_enabled;
     int32_t ret = 0;
 #ifndef CANARD_USE_FLOAT16_CAST
     uint16_t tmp_float = 0;
@@ -391,10 +392,9 @@ int32_t vesc_RTData_decode_internal(
 #endif
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -405,10 +405,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -419,10 +418,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -433,10 +431,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -447,10 +444,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -461,10 +457,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -475,10 +470,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -489,10 +483,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -503,10 +496,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -517,10 +509,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -531,10 +522,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -545,10 +535,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -559,10 +548,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -573,10 +561,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -587,10 +574,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -601,10 +587,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -615,10 +600,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -629,10 +613,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -643,10 +626,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -657,10 +639,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -671,10 +652,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -685,10 +665,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -699,10 +678,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -713,10 +691,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -727,10 +704,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -741,10 +717,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -755,10 +730,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -769,10 +743,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -783,10 +756,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -797,10 +769,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -811,10 +782,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -825,10 +795,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -839,10 +808,9 @@ int32_t vesc_RTData_decode_internal(
     offset += 16;
 
     // float16 special handling
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void*)&tmp_float);
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 16, false, (void *)&tmp_float);
 
-    if (ret != 16)
-    {
+    if (ret != 16) {
         goto vesc_RTData_error_exit;
     }
 #ifndef CANARD_USE_FLOAT16_CAST
@@ -852,55 +820,45 @@ int32_t vesc_RTData_decode_internal(
 #endif
     offset += 16;
 
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 8, false, (void*)&dest->fault_code);
-    if (ret != 8)
-    {
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 8, false, (void *)&dest->fault_code);
+    if (ret != 8) {
         goto vesc_RTData_error_exit;
     }
     offset += 8;
 
-    ret = canardDecodeScalar(transfer, (uint32_t)offset, 8, false, (void*)&dest->vesc_id);
-    if (ret != 8)
-    {
+    ret = canardDecodeScalar(transfer, (uint32_t)offset, 8, false, (void *)&dest->vesc_id);
+    if (ret != 8) {
         goto vesc_RTData_error_exit;
     }
     offset += 8;
     return offset;
 
 vesc_RTData_error_exit:
-    if (ret < 0)
-    {
+    if (ret < 0) {
         return ret;
-    }
-    else
-    {
+    } else {
         return -CANARD_ERROR_INTERNAL;
     }
 }
 
 /**
-  * @brief vesc_RTData_decode
-  * @param transfer: Pointer to CanardRxTransfer transfer
-  * @param payload_len: Payload message length
-  * @param dest: Pointer to destination struct
-  * @param dyn_arr_buf: NULL or Pointer to memory storage to be used for dynamic arrays
-  *                     vesc_RTData dyn memory will point to dyn_arr_buf memory.
-  *                     NULL will ignore dynamic arrays decoding.
-  * @retval offset or ERROR value if < 0
-  */
-int32_t vesc_RTData_decode(const CanardRxTransfer* transfer,
-  uint16_t payload_len,
-  vesc_RTData* dest,
-  uint8_t** dyn_arr_buf,
-  bool tao_enabled)
+ * @brief vesc_RTData_decode
+ * @param transfer: Pointer to CanardRxTransfer transfer
+ * @param payload_len: Payload message length
+ * @param dest: Pointer to destination struct
+ * @param dyn_arr_buf: NULL or Pointer to memory storage to be used for dynamic arrays
+ *                     vesc_RTData dyn memory will point to dyn_arr_buf memory.
+ *                     NULL will ignore dynamic arrays decoding.
+ * @retval offset or ERROR value if < 0
+ */
+int32_t vesc_RTData_decode(const CanardRxTransfer *transfer, uint16_t payload_len, vesc_RTData *dest, uint8_t **dyn_arr_buf, bool tao_enabled)
 {
     const int32_t offset = 0;
     int32_t ret = 0;
 
     // Clear the destination struct
-    for (uint32_t c = 0; c < sizeof(vesc_RTData); c++)
-    {
-        ((uint8_t*)dest)[c] = 0x00;
+    for (uint32_t c = 0; c < sizeof(vesc_RTData); c++) {
+        ((uint8_t *)dest)[c] = 0x00;
     }
 
     ret = vesc_RTData_decode_internal(transfer, payload_len, dest, dyn_arr_buf, offset, tao_enabled);

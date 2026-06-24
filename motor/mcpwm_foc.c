@@ -1,3 +1,4 @@
+// clang-format off
 /*
 	Copyright 2016 - 2022 Benjamin Vedder	benjamin@vedder.se
 
@@ -4502,7 +4503,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	// Decoupling. Using feedforward this compensates for the fact that the equations of a PMSM
 	// are not really decoupled (the d axis current has impact on q axis voltage and visa-versa):
 	//      Resistance  Inductance   Cross terms   Back-EMF   (see www.mathworks.com/help/physmod/sps/ref/pmsm.html)
-	// vd = Rs*id   +   Ld*did/dt −  ωe*iq*Lq
+	// vd = Rs*id   +   Ld*did/dt �?  ωe*iq*Lq
 	// vq = Rs*iq   +   Lq*diq/dt +  ωe*id*Ld     + ωe*ψm
 	float dec_vd = 0.0;
 	float dec_vq = 0.0;

@@ -1,19 +1,48 @@
-*~
+# Keil MDK (uVision) build output and intermediate files
 
-build
-tools
-downloads
-package/
+# Build output directories (default names)
+Objects/
+Listings/
 
-.dep
-.project
-.cproject
-.settings/language.settings.xml
-.DS_Store
-workspace.code-workspace
+# Alternative: if you use custom output directories
+*.build_log.htm
+*.htm
+*.sct
 
-# Qt project settings
-*.pro.user
-*.pro.shared
+# Object files
+*.o
+*.d
 
-.vscode
+# Listing files
+*.lst
+*.crf
+*.lnp
+
+# Linker map and execution files
+*.map
+*.axf
+*.elf
+
+# Binary output
+*.hex
+*.bin
+
+# Debug info
+*.tra
+
+# uVision project backup files
+*.bak
+*.uvoptx.bak
+*.uvprojx.bak
+
+# uVision local settings (user-specific)
+*.uvoptx
+*.uvguix.*
+*.uvdebugmonopts
+
+# JLink/ST-Link log (optional)
+JLinkLog.txt
+JLinkSettings.ini
+
+# Avoid committing the entire RTE folder if generated
+RTE/_Target_1/
