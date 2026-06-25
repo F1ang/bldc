@@ -56,19 +56,20 @@
 
 static float calculateAccConfidence(float acc_confidence_decay, float accMag, float *accMagP);
 
-static float calculateAccConfidence(float acc_confidence_decay, float accMag, float *accMagP) {
-	// G.K. Egan (C) computes confidence in accelerometers when
-	// aircraft is being accelerated over and above that due to gravity
+static float calculateAccConfidence(float acc_confidence_decay, float accMag, float *accMagP)
+{
+    // G.K. Egan (C) computes confidence in accelerometers when
+    // aircraft is being accelerated over and above that due to gravity
 
-	float confidence;
+    float confidence;
 
-	accMag = *accMagP * 0.9f + accMag * 0.1f;
-	*accMagP = accMag;
+    accMag = *accMagP * 0.9f + accMag * 0.1f;
+    *accMagP = accMag;
 
-	confidence = 1.0 - (acc_confidence_decay * sqrtf(fabsf(accMag - 1.0f)));
-	utils_truncate_number(&confidence, 0.0, 1.0);
+    confidence = 1.0 - (acc_confidence_decay * sqrtf(fabsf(accMag - 1.0f)));
+    utils_truncate_number(&confidence, 0.0, 1.0);
 
-	return confidence;
+    return confidence;
 }
 
 /**
@@ -76,7 +77,8 @@ static float calculateAccConfidence(float acc_confidence_decay, float accMag, fl
  * @param fusionAhrs AHRS algorithm structure.
  * @param gain AHRS algorithm gain.
  */
-void FusionAhrsInitialise(FusionAhrs * const fusionAhrs, const float gain, const float acc_conf_decay) {
+void FusionAhrsInitialise(FusionAhrs *const fusionAhrs, const float gain, const float acc_conf_decay)
+{
     fusionAhrs->gain = gain;
     fusionAhrs->acc_conf_decay = acc_conf_decay;
     fusionAhrs->minimumMagneticFieldSquared = 0.0f;
@@ -90,12 +92,14 @@ void FusionAhrsInitialise(FusionAhrs * const fusionAhrs, const float gain, const
  * zero.
  * @param gain AHRS algorithm gain.
  */
-void FusionAhrsSetGain(FusionAhrs * const fusionAhrs, const float gain) {
+void FusionAhrsSetGain(FusionAhrs *const fusionAhrs, const float gain)
+{
     fusionAhrs->gain = gain;
 }
 
-void FusionAhrsSetAccConfDecay(FusionAhrs * const fusionAhrs, const float acc_conf_decay) {
-	fusionAhrs->acc_conf_decay = acc_conf_decay;
+void FusionAhrsSetAccConfDecay(FusionAhrs *const fusionAhrs, const float acc_conf_decay)
+{
+    fusionAhrs->acc_conf_decay = acc_conf_decay;
 }
 
 /**
@@ -104,7 +108,8 @@ void FusionAhrsSetAccConfDecay(FusionAhrs * const fusionAhrs, const float acc_co
  * @param minimumMagneticField Minimum valid magnetic field magnitude.
  * @param maximumMagneticField Maximum valid magnetic field magnitude.
  */
-void FusionAhrsSetMagneticField(FusionAhrs * const fusionAhrs, const float minimumMagneticField, const float maximumMagneticField) {
+void FusionAhrsSetMagneticField(FusionAhrs *const fusionAhrs, const float minimumMagneticField, const float maximumMagneticField)
+{
     fusionAhrs->minimumMagneticFieldSquared = minimumMagneticField * minimumMagneticField;
     fusionAhrs->maximumMagneticFieldSquared = maximumMagneticField * maximumMagneticField;
 }
@@ -119,7 +124,9 @@ void FusionAhrsSetMagneticField(FusionAhrs * const fusionAhrs, const float minim
  * @param samplePeriod Sample period in seconds.  This is the difference in time
  * between the current and previous gyroscope measurements.
  */
-void FusionAhrsUpdate(FusionAhrs * const fusionAhrs, const FusionVector3 gyroscope, const FusionVector3 accelerometer, const FusionVector3 magnetometer, const float samplePeriod) {
+void FusionAhrsUpdate(FusionAhrs *const fusionAhrs, const FusionVector3 gyroscope, const FusionVector3 accelerometer,
+                      const FusionVector3 magnetometer, const float samplePeriod)
+{
 #define Q fusionAhrs->quaternion.element // define shorthand label for more readable code
 
     // Calculate feedback error
@@ -142,22 +149,21 @@ void FusionAhrsUpdate(FusionAhrs * const fusionAhrs, const FusionVector3 gyrosco
 
         // Abandon magnetometer feedback calculation if magnetometer measurement invalid
         const float magnetometerMagnitudeSquared = FusionVectorMagnitudeSquared(magnetometer);
-        if ((magnetometerMagnitudeSquared < fusionAhrs->minimumMagneticFieldSquared) || (magnetometerMagnitudeSquared > fusionAhrs->maximumMagneticFieldSquared)) {
+        if ((magnetometerMagnitudeSquared < fusionAhrs->minimumMagneticFieldSquared) ||
+            (magnetometerMagnitudeSquared > fusionAhrs->maximumMagneticFieldSquared)) {
             break;
         }
 
         // Compute direction of 'magnetic west' assumed by quaternion
-        const FusionVector3 halfWest = {
-            .axis.x = Q.x * Q.y + Q.w * Q.z,
-            .axis.y = Q.w * Q.w - 0.5f + Q.y * Q.y,
-            .axis.z = Q.y * Q.z - Q.w * Q.x
-        }; // equal to 2nd column of rotation matrix representation scaled by 0.5
+        const FusionVector3 halfWest = {.axis.x = Q.x * Q.y + Q.w * Q.z,
+                                        .axis.y = Q.w * Q.w - 0.5f + Q.y * Q.y,
+                                        .axis.z = Q.y * Q.z - Q.w * Q.x}; // equal to 2nd column of rotation matrix representation scaled by 0.5
 
         // Calculate magnetometer feedback error
-        halfFeedbackError = FusionVectorAdd(halfFeedbackError, FusionVectorCrossProduct(FusionVectorFastNormalise(FusionVectorCrossProduct(accelerometer, magnetometer)), halfWest));
+        halfFeedbackError = FusionVectorAdd(
+            halfFeedbackError, FusionVectorCrossProduct(FusionVectorFastNormalise(FusionVectorCrossProduct(accelerometer, magnetometer)), halfWest));
 
     } while (false);
-
 
     float feedbackGain = fusionAhrs->gain;
     float accMag = sqrtf(SQ(accelerometer.axis.x) + SQ(accelerometer.axis.y) + SQ(accelerometer.axis.z));
@@ -171,7 +177,8 @@ void FusionAhrsUpdate(FusionAhrs * const fusionAhrs, const FusionVector3 gyrosco
     halfGyroscope = FusionVectorAdd(halfGyroscope, FusionVectorMultiplyScalar(halfFeedbackError, feedbackGain));
 
     // Integrate rate of change of quaternion
-    fusionAhrs->quaternion = FusionQuaternionAdd(fusionAhrs->quaternion, FusionQuaternionMultiplyVector(fusionAhrs->quaternion, FusionVectorMultiplyScalar(halfGyroscope, samplePeriod)));
+    fusionAhrs->quaternion = FusionQuaternionAdd(
+        fusionAhrs->quaternion, FusionQuaternionMultiplyVector(fusionAhrs->quaternion, FusionVectorMultiplyScalar(halfGyroscope, samplePeriod)));
 
     // Normalise quaternion
     fusionAhrs->quaternion = FusionQuaternionFastNormalise(fusionAhrs->quaternion);
@@ -196,8 +203,10 @@ void FusionAhrsUpdate(FusionAhrs * const fusionAhrs, const FusionVector3 gyrosco
  * @param samplePeriod Sample period in seconds.  This is the difference in time
  * between the current and previous gyroscope measurements.
  */
-void FusionAhrsUpdateWithoutMagnetometer(FusionAhrs * const fusionAhrs, const FusionVector3 gyroscope, const FusionVector3 accelerometer, const float samplePeriod) {
-    FusionAhrsUpdate(fusionAhrs, gyroscope, accelerometer, FUSION_VECTOR3_ZERO, samplePeriod);
+void FusionAhrsUpdateWithoutMagnetometer(FusionAhrs *const fusionAhrs, const FusionVector3 gyroscope, const FusionVector3 accelerometer,
+                                         const float samplePeriod)
+{
+    FusionAhrsUpdate(fusionAhrs, gyroscope, accelerometer, FUSION_VECTOR3_ZERO, samplePeriod); // 第三方库实现，改进的滤波
 }
 
 /**
@@ -205,7 +214,8 @@ void FusionAhrsUpdateWithoutMagnetometer(FusionAhrs * const fusionAhrs, const Fu
  * @param fusionAhrs AHRS algorithm structure.
  * @return Quaternion describing the sensor relative to the Earth.
  */
-FusionQuaternion FusionAhrsGetQuaternion(const FusionAhrs * const fusionAhrs) {
+FusionQuaternion FusionAhrsGetQuaternion(const FusionAhrs *const fusionAhrs)
+{
     return FusionQuaternionConjugate(fusionAhrs->quaternion);
 }
 
@@ -215,7 +225,8 @@ FusionQuaternion FusionAhrsGetQuaternion(const FusionAhrs * const fusionAhrs) {
  * @param fusionAhrs AHRS algorithm structure.
  * @return Linear acceleration measurement.
  */
-FusionVector3 FusionAhrsGetLinearAcceleration(const FusionAhrs * const fusionAhrs) {
+FusionVector3 FusionAhrsGetLinearAcceleration(const FusionAhrs *const fusionAhrs)
+{
     return fusionAhrs->linearAcceleration;
 }
 
@@ -225,7 +236,8 @@ FusionVector3 FusionAhrsGetLinearAcceleration(const FusionAhrs * const fusionAhr
  * @param fusionAhrs AHRS algorithm structure.
  * @return Earth acceleration measurement.
  */
-FusionVector3 FusionAhrsGetEarthAcceleration(const FusionAhrs * const fusionAhrs) {
+FusionVector3 FusionAhrsGetEarthAcceleration(const FusionAhrs *const fusionAhrs)
+{
 #define Q fusionAhrs->quaternion.element // define shorthand labels for more readable code
 #define A fusionAhrs->linearAcceleration.axis
     const float qwqw = Q.w * Q.w; // calculate common terms to avoid repeated operations
@@ -249,7 +261,8 @@ FusionVector3 FusionAhrsGetEarthAcceleration(const FusionAhrs * const fusionAhrs
  * @brief Reinitialise the AHRS algorithm.
  * @param fusionAhrs AHRS algorithm structure.
  */
-void FusionAhrsReinitialise(FusionAhrs * const fusionAhrs) {
+void FusionAhrsReinitialise(FusionAhrs *const fusionAhrs)
+{
     fusionAhrs->quaternion = FUSION_QUATERNION_IDENTITY;
     fusionAhrs->linearAcceleration = FUSION_VECTOR3_ZERO;
 }
@@ -261,9 +274,11 @@ void FusionAhrsReinitialise(FusionAhrs * const fusionAhrs) {
  * @param fusionAhrs AHRS algorithm structure.
  * @param yaw Yaw angle in degrees.
  */
-void FusionAhrsSetYaw(FusionAhrs * const fusionAhrs, const float yaw) {
+void FusionAhrsSetYaw(FusionAhrs *const fusionAhrs, const float yaw)
+{
 #define Q fusionAhrs->quaternion.element // define shorthand label for more readable code
-    fusionAhrs->quaternion = FusionQuaternionNormalise(fusionAhrs->quaternion); // quaternion must be normalised accurately (approximation not sufficient)
+    fusionAhrs->quaternion =
+        FusionQuaternionNormalise(fusionAhrs->quaternion); // quaternion must be normalised accurately (approximation not sufficient)
     const float inverseYaw = atan2f(Q.x * Q.y + Q.w * Q.z, Q.w * Q.w - 0.5f + Q.x * Q.x); // Euler angle of conjugate
     const float halfInverseYawMinusOffset = 0.5f * (inverseYaw - FusionDegreesToRadians(yaw));
     const FusionQuaternion inverseYawQuaternion = {

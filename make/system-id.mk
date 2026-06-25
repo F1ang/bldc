@@ -3,6 +3,8 @@
 # environment variables common to all operating systems supported by the make system
 # C.f. https://gist.github.com/sighingnow/deee806603ec9274fd47
 
+# 操作系统自动识别
+
 OSFLAG :=
 
 ifeq ($(OS),Windows_NT)

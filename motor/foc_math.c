@@ -22,6 +22,9 @@
 #include "utils_math.h"
 #include <math.h>
 
+/* --------------------- FOC 数学核心：观测器、SVM、PLL、PID、弱磁、HFI -------------------- */
+
+// 磁链观测器更新 — 基于电压/电流/磁链模型估计转子位置和速度。支持多种观测器类型
 // See http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
 void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 		float dt, observer_state *state, float *phase, motor_all_state_t *motor) {
@@ -222,6 +225,7 @@ void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_bet
 	// The d flux each time would have a residual after transform from ab to dq. This can be used as an input to the flux estimator
 }
 
+// PLL 锁相环 — 从观测器估计的相位中锁出平滑的速度值
 void foc_pll_run(float phase, float dt, float *phase_var,
 					float *speed_var, mc_configuration *conf) {
 	UTILS_NAN_ZERO(*phase_var);
@@ -233,6 +237,7 @@ void foc_pll_run(float phase, float dt, float *phase_var,
 	*speed_var += conf->foc_pll_ki * delta_theta * dt;
 }
 
+// 空间矢量调制 SVPWM — 输入 αβ 电压，输出三相 TIM 占空比及 SVM 扇区号
 /**
  * @brief svm Space vector modulation. Magnitude must not be larger than sqrt(3)/2, or 0.866 to avoid overmodulation.
  *        See https://github.com/vedderb/bldc/pull/372#issuecomment-962499623 for a full description.
@@ -382,6 +387,7 @@ void foc_svm(float alpha, float beta, float max_mod, uint32_t PWMFullDutyCycle,
 	*svm_sector = sector;
 }
 
+// 位置 PID 控制 — 级联 P-PI 结构，位置外环 PI 输出作为速度内环的目标
 void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *motor) {
 	mc_configuration *conf_now = motor->m_conf;
 
@@ -489,6 +495,7 @@ void foc_run_pid_control_pos(bool index_found, float dt, motor_all_state_t *moto
 	}
 }
 
+// 速度 PID 控制 — PI 控制器，输出作为电流环的 iq 目标值
 void foc_run_pid_control_speed(bool index_found, float dt, motor_all_state_t *motor) {
 	mc_configuration *conf_now = motor->m_conf;
 	float p_term;
@@ -570,6 +577,7 @@ void foc_run_pid_control_speed(bool index_found, float dt, motor_all_state_t *mo
 	motor->m_iq_set = output * conf_now->lo_current_max * conf_now->l_current_max_scale;
 }
 
+// 编码器校正 — 融合观测器角度与编码器角度
 float foc_correct_encoder(float obs_angle, float enc_angle, float speed,
 							 float sl_erpm, motor_all_state_t *motor) {
 	float rpm_abs = fabsf(RADPS2RPM_f(speed));
@@ -589,6 +597,7 @@ float foc_correct_encoder(float obs_angle, float enc_angle, float speed,
 	return motor->m_using_encoder ? enc_angle : obs_angle;
 }
 
+// 霍尔传感器校正 — 将霍尔信号插值为连续电角度
 float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall_val) {
 	mc_configuration *conf_now = motor->m_conf;
 	motor->m_hall_dt_diff_now += dt;
@@ -700,6 +709,7 @@ float foc_correct_hall(float angle, float dt, motor_all_state_t *motor, int hall
 	return angle;
 }
 
+// 弱磁控制 FW — 注入负方向 id 电流以扩展转速范围
 void foc_run_fw(motor_all_state_t *motor, float dt) {
 	if (motor->m_conf->foc_fw_current_max < fmaxf(motor->m_conf->cc_min_current, 0.001)) {
 		return;
@@ -742,6 +752,7 @@ void foc_run_fw(motor_all_state_t *motor, float dt) {
 	}
 }
 
+// 高频注入角度调整 — 基于 HFI 角度误差调整估计角度
 void foc_hfi_adjust_angle(float ang_err, motor_all_state_t *motor, float dt) {
 	mc_configuration *conf = motor->m_conf;
 	utils_truncate_number_abs(&ang_err, conf->foc_hfi_max_err);
@@ -756,6 +767,7 @@ void foc_hfi_adjust_angle(float ang_err, motor_all_state_t *motor, float dt) {
 	motor->m_hfi.ready = true;
 }
 
+// 预计算值 — 计算 Lq/Ld、凸极系数、调制归一化因子
 void foc_precalc_values(motor_all_state_t *motor) {
 	const mc_configuration *conf_now = motor->m_conf;
 	motor->p_lq = conf_now->foc_motor_l + conf_now->foc_motor_ld_lq_diff * 0.5;

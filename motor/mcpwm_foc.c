@@ -43,6 +43,8 @@
 #include "virtual_motor.h"
 #include "foc_math.h"
 
+/* --------------------------- FOC Ê¸Á¿¿ØÖÆÇý¶¯£¨Ö÷Á÷¿ØÖÆ·½Ê½£© --------------------------- */
+
 // Private variables
 static volatile bool m_dccal_done = false;
 static volatile float m_last_adc_isr_duration;
@@ -863,7 +865,7 @@ void mcpwm_foc_set_handbrake(float current) {
  * The RPM to use.
  *
  */
-void mcpwm_foc_set_openloop_current(float current, float rpm) {
+void mcpwm_foc_set_openloop_current(float current, float rpm) { // ¿ª»·¿ØÖÆÏµÁÐ ¡ª ÓÃÓÚÎÞ´«¸ÐÆ÷Æô¶¯½×¶Î
 	utils_truncate_number(&current, -get_motor_now()->m_conf->l_current_max * get_motor_now()->m_conf->l_current_max_scale,
 						  get_motor_now()->m_conf->l_current_max * get_motor_now()->m_conf->l_current_max_scale);
 
@@ -890,7 +892,7 @@ void mcpwm_foc_set_openloop_current(float current, float rpm) {
  * @param phase
  * The phase to use in degrees, range [0.0 360.0]
  */
-void mcpwm_foc_set_openloop_phase(float current, float phase) {
+void mcpwm_foc_set_openloop_phase(float current, float phase) { // ¿ª»·¿ØÖÆÏµÁÐ ¡ª ÓÃÓÚÎÞ´«¸ÐÆ÷Æô¶¯½×¶Î
 	utils_truncate_number(&current, -get_motor_now()->m_conf->l_current_max * get_motor_now()->m_conf->l_current_max_scale,
 						  get_motor_now()->m_conf->l_current_max * get_motor_now()->m_conf->l_current_max_scale);
 
@@ -982,7 +984,7 @@ void mcpwm_foc_get_currents_adc(
  * @param rpm
  * The RPM to use.
  */
-void mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm) {
+void mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm) { // ¿ª»·¿ØÖÆÏµÁÐ ¡ª ÓÃÓÚÎÞ´«¸ÐÆ÷Æô¶¯½×¶Î
 	get_motor_now()->m_control_mode = CONTROL_MODE_OPENLOOP_DUTY;
 	get_motor_now()->m_duty_cycle_set = dutyCycle;
 	get_motor_now()->m_openloop_speed = RPM2RADPS_f(rpm);
@@ -1002,7 +1004,7 @@ void mcpwm_foc_set_openloop_duty(float dutyCycle, float rpm) {
  * @param phase
  * The phase to use in degrees, range [0.0 360.0]
  */
-void mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase) {
+void mcpwm_foc_set_openloop_duty_phase(float dutyCycle, float phase) { // ¿ª»·¿ØÖÆÏµÁÐ ¡ª ÓÃÓÚÎÞ´«¸ÐÆ÷Æô¶¯½×¶Î
 	get_motor_now()->m_control_mode = CONTROL_MODE_OPENLOOP_DUTY_PHASE;
 	get_motor_now()->m_duty_cycle_set = dutyCycle;
 	get_motor_now()->m_openloop_phase = DEG2RAD_f(phase);
@@ -1379,7 +1381,7 @@ float mcpwm_foc_get_phase(void) {
 	return angle;
 }
 
-float mcpwm_foc_get_phase_observer(void) {
+float mcpwm_foc_get_phase_observer(void) { // »ñÈ¡¸÷ÖÖÀ´Ô´µÄ×ª×ÓÎ»ÖÃ
 	float angle = RAD2DEG_f(get_motor_now()->m_phase_now_observer);
 	utils_norm_angle(&angle);
 	return angle;
@@ -1472,7 +1474,7 @@ volatile const hfi_state_t *mcpwm_foc_get_hfi_state(void) {
  * @return
  * The fault code
  */
-int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted) {
+int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ratio, bool *inverted) { // ×Ô¶¯¼ì²â±àÂëÆ÷Æ«ÒÆ
 	int fault = FAULT_CODE_NONE;
 	mc_interface_lock();
 
@@ -1751,7 +1753,7 @@ int mcpwm_foc_encoder_detect(float current, bool print, float *offset, float *ra
  * @return
  * The fault code.
  */
-int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, float *resistance) {
+int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, float *resistance) { // ×Ô¶¯²âÁ¿µç»úÏàµç×è
 	mc_interface_lock();
 
 	volatile motor_all_state_t *motor = get_motor_now();
@@ -1863,7 +1865,7 @@ int mcpwm_foc_measure_resistance(float current, int samples, bool stop_after, fl
  * @return
  * The fault code
  */
-int mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld_lq_diff, float *inductance) {
+int mcpwm_foc_measure_inductance(float duty, int samples, float *curr, float *ld_lq_diff, float *inductance) { // ×Ô¶¯²âÁ¿µç»úµç¸Ð
 	volatile motor_all_state_t *motor = get_motor_now();
 	int fault = FAULT_CODE_NONE;
 
@@ -2060,7 +2062,7 @@ int mcpwm_foc_measure_inductance_current(float curr_goal, int samples, float *cu
 	return fault;
 }
 
-bool mcpwm_foc_beep(float freq, float time, float voltage) {
+bool mcpwm_foc_beep(float freq, float time, float voltage) { // ÒôÆµÊä³ö
 	if (mc_interface_get_fault() != FAULT_CODE_NONE) {
 		return false;
 	}
@@ -2324,7 +2326,7 @@ int mcpwm_foc_measure_res_ind(float *res, float *ind, float *ld_lq_diff) {
  * @return
  * The fault code
  */
-int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) {
+int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) { // ×Ô¶¯¼ì²â»ô¶û´«¸ÐÆ÷»»Ïà±í
 	volatile motor_all_state_t *motor = get_motor_now();
 	int fault = FAULT_CODE_NONE;
 	mc_interface_lock();
@@ -2662,7 +2664,7 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 #else
 // WARNING: This calibration routine can only be run when the motor is not spinning.
 // For low side shunt hardware with high capacitance mosfets this works a lot better
-int mcpwm_foc_dc_cal(bool cal_undriven) {
+int mcpwm_foc_dc_cal(bool cal_undriven) { // ADC Ö±Á÷Æ«ÖÃÐ£×¼
 	// Wait max 5 seconds for DRV-fault to go away
 	int cnt = 0;
 	while(IS_DRV_FAULT()){
@@ -2817,6 +2819,7 @@ void mcpwm_foc_tim_sample_int_handler(void) {
 	}
 }
 
+// ADC Íê³ÉÖÐ¶Ï ¡ª FOC ¿ØÖÆÖ÷Ñ­»·Èë¿Ú
 void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	(void)p;
 	(void)flags;
@@ -4058,7 +4061,7 @@ static THD_FUNCTION(timer_thread, arg) {
 	}
 }
 
-static void hfi_update(volatile motor_all_state_t *motor, float dt) {
+static void hfi_update(volatile motor_all_state_t *motor, float dt) { // ¸ßÆµ×¢ÈëÏß³Ì
 	(void)dt;
 	float rpm_abs = fabsf(RADPS2RPM_f(motor->m_speed_est_fast));
 
@@ -4417,7 +4420,7 @@ static THD_FUNCTION(pid_thread, arg) {
  * @param dt
  * The time step in seconds.
  */
-static void control_current(motor_all_state_t *motor, float dt) {
+static void control_current(motor_all_state_t *motor, float dt) { // µçÁ÷»·ºËÐÄ ¡ª dq Öá PI ¿ØÖÆ¡¢½âñî¡¢·´ Park ¡ú SVM
 	volatile motor_state_t *state_m = &motor->m_motor_state;
 	volatile mc_configuration *conf_now = motor->m_conf;
 
@@ -4503,7 +4506,7 @@ static void control_current(motor_all_state_t *motor, float dt) {
 	// Decoupling. Using feedforward this compensates for the fact that the equations of a PMSM
 	// are not really decoupled (the d axis current has impact on q axis voltage and visa-versa):
 	//      Resistance  Inductance   Cross terms   Back-EMF   (see www.mathworks.com/help/physmod/sps/ref/pmsm.html)
-	// vd = Rs*id   +   Ld*did/dt ï¿½?  Ï‰e*iq*Lq
+	// vd = Rs*id   +   Ld*did/dt ï¿??  Ï‰e*iq*Lq
 	// vq = Rs*iq   +   Lq*diq/dt +  Ï‰e*id*Ld     + Ï‰e*Ïˆm
 	float dec_vd = 0.0;
 	float dec_vq = 0.0;

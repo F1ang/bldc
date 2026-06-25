@@ -45,13 +45,20 @@
 /* Module local functions.                                                   */
 /*===========================================================================*/
 
-static void tmrcb(void *p) {
-  event_timer_t *etp = p;
+// 将定时器到期映射为事件标志
+// EvTimer 结构封装：时间值 + 事件掩码
+// evtStart()/evtStop() — 启动/停止事件定时器
+// evtDispatch() — 统一处理所有到期事件
+// 适合把周期性硬实时事件转换为线程可等待的事件机制
 
-  chSysLockFromISR();
-  chEvtBroadcastI(&etp->et_es);
-  chVTDoSetI(&etp->et_vt, etp->et_interval, tmrcb, etp);
-  chSysUnlockFromISR();
+static void tmrcb(void *p)
+{
+    event_timer_t *etp = p;
+
+    chSysLockFromISR();
+    chEvtBroadcastI(&etp->et_es);
+    chVTDoSetI(&etp->et_vt, etp->et_interval, tmrcb, etp);
+    chSysUnlockFromISR();
 }
 
 /*===========================================================================*/
@@ -64,11 +71,12 @@ static void tmrcb(void *p) {
  * @param[out] etp      the @p event_timer_t structure to be initialized
  * @param[in] time      the interval in system ticks
  */
-void evtObjectInit(event_timer_t *etp, systime_t time) {
+void evtObjectInit(event_timer_t *etp, systime_t time)
+{
 
-  chEvtObjectInit(&etp->et_es);
-  chVTObjectInit(&etp->et_vt);
-  etp->et_interval = time;
+    chEvtObjectInit(&etp->et_es);
+    chVTObjectInit(&etp->et_vt);
+    etp->et_interval = time;
 }
 
 /**
@@ -77,9 +85,10 @@ void evtObjectInit(event_timer_t *etp, systime_t time) {
  *
  * @param[in] etp       pointer to an initialized @p event_timer_t structure.
  */
-void evtStart(event_timer_t *etp) {
+void evtStart(event_timer_t *etp)
+{
 
-  chVTSet(&etp->et_vt, etp->et_interval, tmrcb, etp);
+    chVTSet(&etp->et_vt, etp->et_interval, tmrcb, etp);
 }
 
 /** @} */

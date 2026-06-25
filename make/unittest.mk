@@ -8,6 +8,7 @@
 # @brief Makefile template for unit tests
 ###############################################################################
 
+# 单元测试构建规则
 # Flags passed to the preprocessor.
 CPPFLAGS += -I$(GTEST_DIR)/include
 

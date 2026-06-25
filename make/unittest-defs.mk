@@ -1,6 +1,6 @@
 CCACHE :=
 
-
+# 编译/链接/gcov 模板定义
 # Define toolchain component names.
 CC      = $(CCACHE) $(TCHAIN_PREFIX)gcc
 CXX     = $(CCACHE) $(TCHAIN_PREFIX)g++

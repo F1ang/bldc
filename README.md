@@ -146,3 +146,196 @@ git push --tags
 ## License
 
 The software is released under the GNU General Public License version 3.0
+
+
+
+<!-- --------------------------------- fyp --------------------------------- -->
+## 附录：目录索引
+
+| 目录          | 路径              | 说明                     |
+| ------------- | ----------------- | ------------------------ |
+| ChibiOS RTOS  | ChibiOS_3.0.5/os/ | 实时操作系统内核和 HAL   |
+| comm          | comm/             | VESC 通信协议栈          |
+| driver        | driver/           | 硬件外设驱动             |
+| motor         | motor/            | FOC 电机控制算法         |
+| encoder       | encoder/          | 编码器驱动               |
+| imu           | imu/              | IMU 驱动和姿态解算       |
+| hwconf        | hwconf/           | 硬件 BSP（20+ 厂商）     |
+| applications  | applications/     | 应用层功能               |
+| blackmagic    | blackmagic/       | Black Magic Probe 调试器 |
+| libcanard     | libcanard/        | UAVCAN 协议              |
+| lispBM        | lispBM/           | 嵌入式 Lisp 解释器       |
+| qmlui         | qmlui/            | Qt QML 上位机界面        |
+| tests         | tests/            | 测试代码                 |
+| util          | util/             | 通用工具函数             |
+| make          | make/             | 构建系统配置             |
+| documentation | documentation/    | 项目文档                 |
+| Project       | Project/          | IDE 项目文件             |
+
+---
+
+## 文件总览
+
+| 文件                              | 说明                                           |
+| --------------------------------- | ---------------------------------------------- |
+| foc_math.c /foc_math.h            | FOC 数学核心：观测器、SVM、PLL、PID、弱磁、HFI |
+| mcpwm.c / mcpwm.h                 | BLDC 六步换相驱动（梯形波控制）                |
+| mcpwm_foc.c / mcpwm_foc.h         | FOC 矢量控制驱动（主流控制方式）               |
+| mc_interface.c / mc_interface.h   | 统一电机控制接口层（路由到 BLDC 或 FOC）       |
+| virtual_motor.c / virtual_motor.h | 虚拟电机仿真模型（用于无硬件测试）             |
+| mcconf_default.h                  | 电机控制默认配置宏                             |
+
+### 核心数据结构
+
+| 结构体            | 说明                                                                         |
+| ----------------- | ---------------------------------------------------------------------------- |
+| motor_state_t     | 存储当前时刻的电压/电流/调制等电气状态（αβ 和 dq 坐标系）                    |
+| observer_state    | 反电动势观测器状态：x1, x2 为磁链估计，lambda_est 为磁链幅值估计             |
+| hfi_state_t       | 高频注入状态机：用于零/低速转子位置估计                                      |
+| mc_audio_state    | 音频调制状态（把电机当作扬声器）                                             |
+| motor_all_state_t | 电机全部状态的超集结构体，聚合配置、控制模式、电机状态、PID 状态、HFI 状态等 |
+
+### 核心函数
+
+| 函数                        | 说明                                                                              |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| foc_observer_update()       | **磁链观测器更新** — 基于电压/电流/磁链模型估计转子位置和速度。支持多种观测器类型 |
+| foc_pll_run()               | **PLL 锁相环** — 从观测器估计的相位中锁出平滑的速度值                             |
+| foc_svm()                   | **空间矢量调制 SVPWM** — 输入 αβ 电压，输出三相 TIM 占空比及 SVM 扇区号           |
+| foc_run_pid_control_pos()   | **位置 PID 控制** — 级联 P-PI 结构，位置外环 PI 输出作为速度内环的目标            |
+| foc_run_pid_control_speed() | **速度 PID 控制** — PI 控制器，输出作为电流环的 iq 目标值                         |
+| foc_correct_encoder()       | **编码器校正** — 融合观测器角度与编码器角度                                       |
+| foc_correct_hall()          | **霍尔传感器校正** — 将霍尔信号插值为连续电角度                                   |
+| foc_run_fw()                | **弱磁控制 FW** — 注入负方向 id 电流以扩展转速范围                                |
+| foc_hfi_adjust_angle()      | **高频注入角度调整** — 基于 HFI 角度误差调整估计角度                              |
+| foc_precalc_values()        | **预计算值** — 计算 Lq/Ld、凸极系数、调制归一化因子                               |
+
+## mcpwm.c / mcpwm.h — BLDC 六步换相驱动
+
+### 核心函数
+
+| 函数                                       | 说明                                               |
+| ------------------------------------------ | -------------------------------------------------- |
+| mcpwm_init()                               | 初始化 PWM 定时器、ADC、换相步骤状态机             |
+| mcpwm_set_duty() / mcpwm_set_duty_noramp() | 设置占空比（带/不带斜率限制）                      |
+| mcpwm_set_pid_speed()                      | 设置 PID 速度目标                                  |
+| mcpwm_set_pid_pos()                        | 设置 PID 位置目标                                  |
+| mcpwm_set_current()                        | 设置电流目标                                       |
+| mcpwm_brake_now()                          | 立即制动                                           |
+| mcpwm_get_rpm()                            | 获取估算转速                                       |
+| mcpwm_set_detect()                         | 进入电机检测模式                                   |
+| mcpwm_switch_comm_mode()                   | 切换换相模式（同步/异步/积分）                     |
+| mcpwm_adc_int_handler()                    | **ADC 中断处理** — 核心运行时：采样电流、换相、PID |
+
+## mcpwm_foc.c / mcpwm_foc.h — FOC 矢量控制驱动
+
+这是 VESC 最主要的电机控制层，实现完整的 **磁场定向控制** 算法。
+
+### 核心函数
+
+| 函数                                      | 说明                                                 |
+| ----------------------------------------- | ---------------------------------------------------- |
+| mcpwm_foc_init()                          | 初始化 FOC：分配内存、配置定时器与 ADC、启动控制线程 |
+| mcpwm_foc_set_duty() / set_duty_noramp()  | 设置占空比目标                                       |
+| mcpwm_foc_set_pid_speed() / set_pid_pos() | 设置速度/位置 PID 目标                               |
+| mcpwm_foc_set_current()                   | 设置电流目标                                         |
+| mcpwm_foc_set_openloop_*()                | 开环控制系列 — 用于无传感器启动阶段                  |
+| mcpwm_foc_get_rpm()                       | 获取转速                                             |
+| mcpwm_foc_get_id() / get_iq()             | 获取 dq 轴电流值                                     |
+| mcpwm_foc_get_phase_*()                   | 获取各种来源的转子位置                               |
+| mcpwm_foc_encoder_detect()                | 自动检测编码器偏移                                   |
+| mcpwm_foc_measure_resistance()            | 自动测量电机相电阻                                   |
+| mcpwm_foc_measure_inductance()            | 自动测量电机电感                                     |
+| mcpwm_foc_hall_detect()                   | 自动检测霍尔传感器换相表                             |
+| mcpwm_foc_dc_cal()                        | ADC 直流偏置校准                                     |
+| mcpwm_foc_beep() / play_tone()            | 音频输出                                             |
+| control_current()                         | **电流环核心** — dq 轴 PI 控制、解耦、反 Park → SVM  |
+| hfi_update()                              | 高频注入线程                                         |
+| mcpwm_foc_adc_int_handler()               | **ADC 完成中断** — FOC 控制主循环入口                |
+
+---
+
+## mc_interface.c / mc_interface.h — 电机控制统一接口层
+
+向上层应用提供统一的电机控制 API，自动根据配置选择 BLDC 或 FOC 实现。
+
+### 核心函数
+
+| 函数                                                                      | 说明                                   |
+| ------------------------------------------------------------------------- | -------------------------------------- |
+| mc_interface_init()                                                       | 初始化配置、故障处理线程、采样发送线程 |
+| mc_interface_set_duty() / set_current() / set_pid_speed() / set_pid_pos() | 统一设置函数                           |
+| mc_interface_get_rpm()                                                    | 获取转速                               |
+| mc_interface_get_tot_current()                                            | 获取总电流                             |
+| mc_interface_get_tachometer_value()                                       | 获取转速计脉冲                         |
+| mc_interface_get_fault()                                                  | 获取当前故障码                         |
+| mc_interface_fault_stop()                                                 | 故障停止处理                           |
+| mc_interface_set_configuration()                                          | 设置配置并重新初始化底层驱动           |
+| mc_interface_mc_timer_isr()                                               | 主定时器中断处理                       |
+| mc_interface_get_battery_level()                                          | 计算电池剩余电量                       |
+| mc_interface_get_speed() / get_distance()                                 | 计算车速和里程                         |
+| mc_interface_stat_*()                                                     | 统计信息                               |
+
+## virtual_motor.c /virtual_motor.h — 虚拟电机仿真
+
+**实时电机仿真模型**，用于在无硬件时测试 FOC 控制算法。
+
+### 核心函数
+
+| 函数                                  | 说明                                                 |
+| ------------------------------------- | ---------------------------------------------------- |
+| irtual_motor_init()                   | 初始化，注册终端命令                                 |
+| irtual_motor_set_configuration()      | 传入电机配置，预计算参数                             |
+| irtual_motor_int_handler()            | **主入口** — 接收 v_alpha/v_beta，运行模型，回写 ADC |
+|                                       |
+| un_virtual_motor_electrical()         | **电气模型** — dq 轴电流方程积分                     |
+|                                       |
+| un_virtual_motor_mechanics()          | **机械模型** — 转矩与运动方程                        |
+|                                       |
+| un_virtual_motor_park_clark_inverse() | Park-1 + Clark-1 变换 + 回写 ADC 值                  |
+
+---
+
+
+## 文件依赖关系
+
+`
+应用层 / CAN / 终端
+     |
+     v
+mc_interface        -- 统一接口层
+     |
+     +---> mcpwm         -- BLDC 六步换相
+     |
+     +---> mcpwm_foc     -- FOC 矢量控制
+                 |
+                 v
+            foc_math      -- FOC 数学核心（观测器/SVM/PLL/PID）
+                 |
+                 v
+            virtual_motor -- 电机仿真模型（测试用）
+`
+
+---
+
+## FOC 控制数据流
+
+`
+ADC 采样中断
+    | 读取相电流 ia, ib, ic
+Clark 变换: ia, ib, ic -> iα, iβ
+    |
+Park 变换: iα, iβ -> id, iq  (使用估计角度 θ)
+    |
+电流环 PI: (id_ref - id) -> vd, (iq_ref - iq) -> vq
+    |
+反 Park 变换: vd, vq -> vα, vβ
+    |
+SVM SVPWM: vα, vβ -> TIM1/8 占空比寄存器
+    |
+观测器: vα, vβ, iα, iβ -> 估计角度 θ 和速度 ω
+    |
+PLL: 滤波观测器角度 -> 平滑速度
+    |
+（下一周期用更新后的 θ 重复）
+`

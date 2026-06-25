@@ -3,6 +3,8 @@
 # NOTE: Can be overridden externally.
 #
 
+# 固件主构建文件，定义编译器选项、源文件列表、外部库引用
+
 USE_LISPBM ?= 1
 
 # Compiler options here.

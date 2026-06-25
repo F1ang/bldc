@@ -22,7 +22,7 @@
 #define CANARD_MAYBE_UNUSED(x) x
 #endif
 
-// 原始命令：每个电机的直接控制值数组
+// 原始命令：每个电机的直接控制值数组  如,向 ESC 发送原始油门指令
 
 /**
  * @brief uavcan_equipment_esc_RawCommand_encode_internal

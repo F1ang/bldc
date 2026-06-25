@@ -23,6 +23,8 @@
 #include "general.h"
 #include "swdptap.h"
 
+// CMSIS-DAP / SWD 调试器协议兼容
+// 固件调试和烧录支持
 enum { SWDIO_STATUS_FLOAT = 0, SWDIO_STATUS_DRIVE };
 
 int swdptap_init(void)
