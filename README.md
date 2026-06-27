@@ -339,3 +339,153 @@ PLL: 滤波观测器角度 -> 平滑速度
     |
 （下一周期用更新后的 θ 重复）
 `
+
+---
+app_set_configuration()          // 用户应用层（PPM/ADC/UART/无刷手柄）
+    └─ mc_interface_init()       // 电机接口层
+         └─ mcpwm_foc_init()     // FOC 驱动核心层
+              ├─ TIM1/TIM8 (PWM发生器)
+              ├─ TIM2 (ADC采样触发)
+              ├─ ADC1/ADC2/ADC3 + DMA2
+              └─ 创建 ChibiOS 线程：timer_thread / hfi_thread / pid_thread
+
+---
+    mcpwm_foc_adc_int_handler
+1. 判断当前是 V0 还是 V7（通过 TIM1_DIR 位）
+2. 如果是 V7：
+   ├─ 读取 ADC 值 → 转换为电流 (GET_CURRENT1/2)
+   ├─ 乘法因子校准 (FAC_CURRENT1/2)
+   ├─ 相电流 → i_alpha/i_beta (Clarke变换)
+   ├─ i_alpha/i_beta 低通滤波 (UTILS_LP_FAST)
+   ├─ 更新上一个 PWM 周期的占空比到 TIM1 CCR
+   ├─ control_current() ★ 电流环控制
+   │   ├─ 读取当前相位（来自观测器/编码器/Hall/HFI）
+   │   ├─ 反 Park 变换：vd/vq → v_alpha/v_beta
+   │   ├─ SVPWM：foc_svm() → tAout/tBout/tCout
+   │   ├─ 将 SVPWM 结果写入 TIM1 占空比（用于下一周期）
+   │   ├─ 注入 HFI 高频信号（若使能）
+   │   └─ 叠加音频调制信号（若使能）
+   ├─ update_valpha_vbeta() ★ 电压重构 & 死区补偿
+   │   ├─ 读取 ADC 相电压
+   │   ├─ 计算实际 mod_alpha/mod_beta
+   │   ├─ 死区补偿（基于电流方向）
+   │   └─ 低通滤波电压/调制
+   └─ 更新状态变量：duty_now, id/iq, speed_est 等
+3. 如果是 V0（非 V7 控制采样模式）：
+   └─ 仅补充采样（用于 HFI 等），不执行完整控制
+
+---
+1. 在 V7 时刻叠加高频旋转电压矢量 (mod_alpha, mod_beta)
+2. 采集对应的高频电流响应
+3. FFT 解调 (8/16点FFT) → 提取 bin1/bin2 分量
+4. 角度估计：bin2/bin1 的反正切
+5. hfi_adjust_angle() 校正：
+   └─ 通过 PI 调节器跟踪转子凸极
+
+---
+| 线程                          | 栈大小 | 优先级       | 周期      | 功能                                             |
+| ----------------------------- | ------ | ------------ | --------- | ------------------------------------------------ |
+| `timer_thread` (mcpwm_foc)    | 512    | NORMALPRIO   | 1ms       | 调用 `timer_update()` → 位置/速度 PID + DTC 更新 |
+| `timer_thread` (mc_interface) | 512    | NORMALPRIO   | 1ms       | 运行两个电机的 `run_timer_tasks()`               |
+| `hfi_thread` (mcpwm_foc)      | 512    | -            | sleep等待 | 后台处理 HFI 角度估计的耗时计算                  |
+| `pid_thread` (mcpwm_foc)      | 256    | -            | sleep等待 | 后台 PID 参数计算（未来扩展）                    |
+| `sample_send_thread`          | 512    | NORMALPRIO-1 | event触发 | 调试数据采样发送到上位机                         |
+| `fault_stop_thread`           | 512    | HIGHPRIO-3   | event触发 | 故障时紧急停止                                   |
+| `stat_thread`                 | 512    | NORMALPRIO   | 1000ms    | 统计信息更新（功耗、温度等）                     |
+
+---
+上位机 → USB/UART → packet_process() → commands_process_packet()
+    ↑                                         ↓
+    |                                    switch (packet_id):
+    │                                       ├─ COMM_FW_VERSION → 返回固件版本
+    │                                       ├─ COMM_GET_VALUES → mc_interface 采集数据 → 回复
+    │                                       ├─ COMM_SET_DUTY  → mcpwm_foc_set_duty()
+    │                                       ├─ COMM_SET_CURRENT → mcpwm_foc_set_current()
+    │                                       ├─ COMM_SAMPLE_PRINT → 启动波形采样
+    │                                       ├─ COMM_PLOT_INIT → 绘图初始化
+    │                                       └─ ... 等超过 100 种命令
+    │
+    └── ← reply_func() → packet → USB/UART
+
+---
+PWM周期 (e.g. 25kHz = 40μs)
+│
+├── [V7 时刻] TIM2 CC2 中断
+│   └── ADC 三路注入采样 (DMA) → DMA 完成中断
+│       └── mcpwm_foc_adc_int_handler()  ★ ★ ★
+│           ├── 读取 ADC → 电流值 (偏移补偿 + 标定)
+│           ├── Clarke 变换: ia,ib → i_alpha,i_beta
+│           ├── Park 变换: i_alpha,i_beta → id,iq (使用 phase_sin/cos)
+│           ├── 电流 PI 控制: id_err, iq_err → vd, vq
+│           ├── 解耦补偿 (交叉耦合 + 反电势)
+│           ├── 电压饱和 + anti-windup
+│           ├── 反 Park 变换: vd,vq → v_alpha,v_beta
+│           ├── SVPWM: v_alpha,v_beta → tA,tB,tC (PWM占空比)
+│           ├── 写入 TIM1 CCR 用于下一周期
+│           ├── 更新状态: id_filter, iq_filter, duty_now
+│           ├── 更新转速估计 (PLL 或差分法)
+│           ├── [可选] HFI 注入
+│           └── [可选] 音频调制叠加
+│
+├── [V0 时刻] TIM2 CC2 中断（若使能双采样）
+│   └── 补充电流采样（仅用于 HFI）
+│
+└── [1ms 周期] timer_thread (ChibiOS)
+    └── timer_update():
+        ├── 位置 PID 控制 (若使能)
+        │   └── foc_run_pid_control_pos()
+        │       └── 位置误差 → 速度目标值
+        └── 速度 PID 控制 (若使能)
+            └── foc_run_pid_control_speed()
+                └── 速度误差 → 电流目标值 iq_set
+                    └── 电流环在 ADC ISR 中跟踪该目标
+
+---
+                  ┌──────────────┐
+  ADC 原始值 ───→│  偏移校正     │
+                  └──────┬───────┘
+                         ↓
+                  ┌──────────────┐
+                  │  Clarke 变换  │  ia,ib → iα,iβ
+                  └──────┬───────┘
+                         ↓
+                  ┌──────────────┐
+  phase sin/cos ─→│  Park 变换    │  iα,iβ → id,iq
+                  └──────┬───────┘
+                         ↓
+               ┌─────────────────┐
+  id_set=0 ───→│  d轴 PI 控制器  │ → vd
+  iq_set  ───→│  q轴 PI 控制器  │ → vq
+               └──────┬──────────┘
+                      ↓
+               ┌──────────────┐
+               │  解耦补偿     │ → vd_c, vq_c
+               └──────┬───────┘
+                      ↓
+               ┌──────────────┐
+               │  饱和+抗饱和  │
+               └──────┬───────┘
+                      ↓
+               ┌──────────────┐
+  phase sin/cos→│ 反Park变换   │ vd,vq → vα,vβ
+               └──────┬───────┘
+                      ↓
+               ┌──────────────┐
+               │  SVPWM        │ vα,vβ → tA,tB,tC
+               └──────┬───────┘
+                      ↓
+               ┌──────────────┐
+               │  TIM1 CCR     │ → PWM 输出 → 逆变器 → 电机
+               └──────────────┘
+
+   角度获取分支：
+   ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐
+   │ 编码器   │  │ Hall     │  │ 观测器   │  │ HFI      │
+   │ (SPI/ABZ)│  │ (GPIO)   │  │ (BEMF)   │  │ (高频)   │
+   └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘
+        └──────────────┴─────────────┴──────────────┘
+                                  ↓
+                          m_motor_state.phase
+                          (用于 Park/反Park)
+
+---

@@ -24,7 +24,15 @@
 
 /* --------------------- FOC 数学核心：观测器、SVM、PLL、PID、弱磁、HFI -------------------- */
 
-// 磁链观测器更新 — 基于电压/电流/磁链模型估计转子位置和速度。支持多种观测器类型
+// 输入：v_alpha, v_beta, i_alpha, i_beta
+// 模型：基于 PMSM 电压方程的龙格-库塔积分
+// 状态：
+//   x1 = L*i_alpha + ψm*cos(θ)  (α轴磁链)
+//   x2 = L*i_beta  + ψm*sin(θ)  (β轴磁链)
+// 输出：
+//   phase = atan2(x2 - L*i_beta, x1 - L*i_alpha)
+//   lambda_est = 估计磁链幅值
+
 // See http://cas.ensmp.fr/~praly/Telechargement/Journaux/2010-IEEE_TPEL-Lee-Hong-Nam-Ortega-Praly-Astolfi.pdf
 void foc_observer_update(float v_alpha, float v_beta, float i_alpha, float i_beta,
 		float dt, observer_state *state, float *phase, motor_all_state_t *motor) {
@@ -238,6 +246,18 @@ void foc_pll_run(float phase, float dt, float *phase_var,
 }
 
 // 空间矢量调制 SVPWM — 输入 αβ 电压，输出三相 TIM 占空比及 SVM 扇区号
+// 输入: alpha (v_α调制), beta (v_β调制)
+//       PWMFullDutyCycle (TIM1 ARR/2, 半周期计数值)
+// 输出: tAout, tBout, tCout (三相占空比)
+//       svm_sector (当前扇区号 1-6)
+
+// 实现:
+// 1. 根据 α,β 符号判定扇区 (1~6)
+// 2. 计算两个有效矢量的作用时间 t1/t2
+// 3. 七段式 SVPWM 排列：
+//    └─ tA/tB/tC 计算（中心对齐，零矢量 V0/V7 对称插入）
+// 4. 经 max_mod 饱和处理，防止过调制
+
 /**
  * @brief svm Space vector modulation. Magnitude must not be larger than sqrt(3)/2, or 0.866 to avoid overmodulation.
  *        See https://github.com/vedderb/bldc/pull/372#issuecomment-962499623 for a full description.
