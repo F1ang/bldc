@@ -95,7 +95,7 @@ typedef struct {
     // Backup data counters
     uint64_t m_odometer_last;
     uint64_t m_runtime_last;
-} motor_if_state_t;
+} motor_if_state_t; // 电机状态参数
 
 // Private variables
 static volatile motor_if_state_t m_motor_1;
@@ -174,6 +174,7 @@ void mc_interface_init(void)
     memset((void *)&m_motor_2, 0, sizeof(motor_if_state_t));
 #endif
 
+    // 读取电机存储的配置参数
     conf_general_read_mc_configuration((mc_configuration *)&m_motor_1.m_conf, false);
 #ifdef HW_HAS_DUAL_MOTORS
     conf_general_read_mc_configuration((mc_configuration *)&m_motor_2.m_conf, true);
@@ -236,6 +237,7 @@ void mc_interface_init(void)
     encoder_init(&motor_now()->m_conf);
 
     // Initialize selected implementation
+    // pwm、adc、dma、hfi初始化
     switch (motor_now()->m_conf.motor_type) {
     case MOTOR_TYPE_BLDC:
     case MOTOR_TYPE_DC:
@@ -254,7 +256,7 @@ void mc_interface_init(void)
         break;
     }
 
-    bms_init((bms_config *)&m_motor_1.m_conf.bms);
+    bms_init((bms_config *)&m_motor_1.m_conf.bms); // soc等初始化
 }
 
 int mc_interface_motor_now(void)

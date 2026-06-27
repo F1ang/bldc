@@ -366,8 +366,8 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	m_motor_1.m_hall_dt_diff_last = 1.0;
 	m_motor_1.m_hall_dt_diff_now = 1.0;
 	m_motor_1.m_ang_hall_int_prev = -1;
-	foc_precalc_values((motor_all_state_t*)&m_motor_1);
-	update_hfi_samples(m_motor_1.m_conf->foc_hfi_samples, &m_motor_1);
+	foc_precalc_values((motor_all_state_t*)&m_motor_1); // 电机初始化状态
+	update_hfi_samples(m_motor_1.m_conf->foc_hfi_samples, &m_motor_1);// hfi初始化
 	init_audio_state(&m_motor_1.m_audio);
 
 #ifdef HW_HAS_DUAL_MOTORS
@@ -558,7 +558,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 		m_dccal_done = true;
 	}
 #endif
-	// Start threads
+	// Start threads  timer、hfi、pid线程
 	timer_thd_stop = false;
 	chThdCreateStatic(timer_thread_wa, sizeof(timer_thread_wa), NORMALPRIO, timer_thread, NULL);
 

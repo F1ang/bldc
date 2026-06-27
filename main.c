@@ -156,6 +156,7 @@ static THD_FUNCTION(led_thread, arg) {
 	}
 }
 
+// 输入设备轮询与超时检测、系统状态与保护监控、APP 层逻辑更新、外设与 UI 控制、数据记录
 static THD_FUNCTION(periodic_thread, arg) {
 	(void)arg;
 
@@ -250,7 +251,7 @@ uint32_t main_calc_hw_crc(void) {
 
 int main(void) {
 	halInit();
-	chSysInit();
+	chSysInit(); // 初始化硬件、调度器、定时器、内存管理，开启任务调度
 
 	// Initialize the enable pins here and disable them
 	// to avoid excessive current draw at boot because of
@@ -268,14 +269,14 @@ int main(void) {
 
 	chThdSleepMilliseconds(100);
 
-	mempools_init();
-	events_init();
+	mempools_init(); // 内存池链表初始化
+	events_init(); // 事件链表初始化
 	timer_init(); // Initialize timer here to allow I2C in hw_init
 	hw_init_gpio();
 	LED_RED_OFF();
 	LED_GREEN_OFF();
 
-	conf_general_init();
+	conf_general_init(); // 配置表初始化
 
 	if (flash_helper_verify_flash_memory() == FAULT_CODE_FLASH_CORRUPTION)	{
 		// Loop here, it is not safe to run any code
@@ -290,18 +291,18 @@ int main(void) {
 	ledpwm_init();
 	mc_interface_init();
 
-	commands_init();
+	commands_init();// 通信链表、阻塞线程创建
 
 #if COMM_USE_USB
-	comm_usb_init();
+	comm_usb_init(); // usb读取、解析线程创建
 #endif
 
-	app_uartcomm_initialize();
+	app_uartcomm_initialize(); // 应用层串口绑定
 	app_configuration *appconf = mempools_alloc_appconf();
-	conf_general_read_app_configuration(appconf);
-	app_uartcomm_start(UART_PORT_BUILTIN);
+	conf_general_read_app_configuration(appconf); // 读取应用层参数配置
+	app_uartcomm_start(UART_PORT_BUILTIN);// 初始化指定端口号的 UART（串口）通信。
 	app_uartcomm_start(UART_PORT_EXTRA_HEADER);
-	app_set_configuration(appconf);
+	app_set_configuration(appconf); // adc/ppm/pas等传感器参数初始化
 
 	// This reads the appconf, that must be initialized first.
 #if CAN_ENABLE
@@ -330,11 +331,11 @@ int main(void) {
 	chThdCreateStatic(periodic_thread_wa, sizeof(periodic_thread_wa), NORMALPRIO, periodic_thread, NULL);
 	chThdCreateStatic(flash_integrity_check_thread_wa, sizeof(flash_integrity_check_thread_wa), LOWPRIO, flash_integrity_check_thread, NULL);
 
-	timeout_init();
+	timeout_init(); // 超时看门狗
 	timeout_configure(appconf->timeout_msec, appconf->timeout_brake_current, appconf->kill_sw_mode);
 
 #if HAS_BLACKMAGIC
-	bm_init();
+	bm_init(); // // 硬件扫描、连接、复位、擦除外部芯片的能力
 #endif
 
 	shutdown_init();
