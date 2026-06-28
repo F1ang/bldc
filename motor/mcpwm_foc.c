@@ -349,7 +349,7 @@ static void init_audio_state(volatile mc_audio_state *s) {
 }
 
 void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
-	utils_sys_lock_cnt();
+	utils_sys_lock_cnt();// 关中断/加锁，防止初始化过程被打断
 
 #ifndef HW_HAS_DUAL_MOTORS
 	(void)conf_m2;

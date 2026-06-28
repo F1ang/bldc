@@ -99,9 +99,9 @@ static THD_FUNCTION(flash_integrity_check_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Flash check");
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE);
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_CRC, ENABLE); // 开启硬件 CRC 单元
 
-	for(;;) {
+	for(;;) {// 6ms校验1小块chunk flash
 		if (flash_helper_verify_flash_memory_chunk() == FAULT_CODE_FLASH_CORRUPTION) {
 			NVIC_SystemReset();
 		}
@@ -156,29 +156,29 @@ static THD_FUNCTION(led_thread, arg) {
 	}
 }
 
-// 输入设备轮询与超时检测、系统状态与保护监控、APP 层逻辑更新、外设与 UI 控制、数据记录
+// 电机参数检测模式、角度波形可视化
 static THD_FUNCTION(periodic_thread, arg) {
 	(void)arg;
 
 	chRegSetThreadName("Main periodic");
 
 	for(;;) {
-		if (mc_interface_get_state() == MC_STATE_DETECTING) {
+		if (mc_interface_get_state() == MC_STATE_DETECTING) { // 电机参数检测模式
 			commands_send_rotor_pos(mcpwm_get_detect_pos());
 		}
 
 		disp_pos_mode display_mode = commands_get_disp_pos_mode();
 
 		switch (display_mode) {
-		case DISP_POS_MODE_ENCODER:
+		case DISP_POS_MODE_ENCODER:// 编码器直接读取的角度
 			commands_send_rotor_pos(encoder_read_deg());
 			break;
 
-		case DISP_POS_MODE_PID_POS:
+		case DISP_POS_MODE_PID_POS:// PID 控制器的实际位置反馈
 			commands_send_rotor_pos(mc_interface_get_pid_pos_now());
 			break;
 
-		case DISP_POS_MODE_PID_POS_ERROR:
+		case DISP_POS_MODE_PID_POS_ERROR:// PID 位置环的跟踪误差 (设定值 - 实际值)
 			commands_send_rotor_pos(utils_angle_difference(mc_interface_get_pid_pos_set(), mc_interface_get_pid_pos_now()));
 			break;
 
@@ -188,15 +188,15 @@ static THD_FUNCTION(periodic_thread, arg) {
 
 		if (mc_interface_get_configuration()->motor_type == MOTOR_TYPE_FOC) {
 			switch (display_mode) {
-			case DISP_POS_MODE_OBSERVER:
+			case DISP_POS_MODE_OBSERVER:// 磁链观测器估算的电角度
 				commands_send_rotor_pos(mcpwm_foc_get_phase_observer());
 				break;
 
-			case DISP_POS_MODE_ENCODER_OBSERVER_ERROR:
+			case DISP_POS_MODE_ENCODER_OBSERVER_ERROR:// 编码器角度 vs 观测器角度 的误差
 				commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_encoder()));
 				break;
 
-			case DISP_POS_MODE_HALL_OBSERVER_ERROR:
+			case DISP_POS_MODE_HALL_OBSERVER_ERROR: // 霍尔角度 vs 观测器角度 的误差
 				commands_send_rotor_pos(utils_angle_difference(mcpwm_foc_get_phase_observer(), mcpwm_foc_get_phase_hall()));
 				break;
 
@@ -351,7 +351,7 @@ int main(void) {
 
 #ifdef CAN_ENABLE
 	// Transmit a CAN boot-frame to notify other nodes on the bus about it.
-	if (appconf->can_mode == CAN_MODE_VESC) {
+	if (appconf->can_mode == CAN_MODE_VESC) { // 硬件型号广播
 		comm_can_transmit_eid(
 				app_get_configuration()->controller_id | (CAN_PACKET_NOTIFY_BOOT << 8),
 				(uint8_t *)HW_NAME, (strlen(HW_NAME) <= CAN_FRAME_MAX_PL_SIZE) ?
@@ -359,7 +359,7 @@ int main(void) {
 	}
 #endif
 
-	mempools_free_appconf(appconf);
+	mempools_free_appconf(appconf); // CAN发送完成后,释放申请的动态内存池
 
 	for(;;) {
 		chThdSleepMilliseconds(10);

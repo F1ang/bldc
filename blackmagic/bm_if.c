@@ -361,7 +361,7 @@ static void terminal_map_nrf5_pins(int argc, const char **argv)
 }
 #endif
 
-// VESC 硬件扫描、连接、复位、擦除外部 ARM 芯片的能力
+// 硬件扫描、连接、复位、擦除外部 ARM 芯片的能力
 void bm_init(void)
 {
     terminal_register_command_callback("bm_swdp_scan", "BlackMagic: Scan SWD", 0, terminal_swdp_scan);

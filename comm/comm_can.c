@@ -369,6 +369,7 @@ msg_t comm_can_transmit_eid_replace(uint32_t id, const uint8_t *data, uint8_t le
     return ret;
 }
 
+// ·¢ËÍCANÍØÕ¹Ö¡
 msg_t comm_can_transmit_eid(uint32_t id, const uint8_t *data, uint8_t len)
 {
     return comm_can_transmit_eid_replace(id, data, len, false, 0);
