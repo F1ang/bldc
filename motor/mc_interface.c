@@ -63,7 +63,7 @@ typedef struct {
     int m_drv_fault_iterations;
     unsigned int m_cycles_running;
     bool m_lock_enabled;
-    bool m_lock_override_once;
+    bool m_lock_override_once; // ture,单次解锁电机
     float m_motor_current_sum;
     float m_input_current_sum;
     float m_motor_current_iterations;
@@ -1931,7 +1931,7 @@ void mc_interface_override_temp_motor(float temp)
 int mc_interface_try_input(void)
 {
     // TODO: Remove this later
-    if (mc_interface_get_state() == MC_STATE_DETECTING) {
+    if (mc_interface_get_state() == MC_STATE_DETECTING) { // 测量参数态
         mcpwm_stop_pwm();
         motor_now()->m_ignore_iterations = MCPWM_DETECT_STOP_TIME;
     }
@@ -1939,10 +1939,10 @@ int mc_interface_try_input(void)
     int retval = motor_now()->m_ignore_iterations;
 
     if (!motor_now()->m_ignore_iterations && motor_now()->m_lock_enabled) {
-        if (!motor_now()->m_lock_override_once) {
+        if (!motor_now()->m_lock_override_once) { // 软件将电机“锁死”
             retval = 1;
         } else {
-            motor_now()->m_lock_override_once = false;
+            motor_now()->m_lock_override_once = false; // 清除豁免标志(单次解锁电机)
         }
     }
 
