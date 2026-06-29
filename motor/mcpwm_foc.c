@@ -46,7 +46,7 @@
 /* --------------------------- FOC 矢量控制驱动（主流控制方式） --------------------------- */
 
 // Private variables
-static volatile bool m_dccal_done = false;
+static volatile bool m_dccal_done = false; // ture:dc电机初始化完成
 static volatile float m_last_adc_isr_duration;
 static volatile bool m_init_done = false;
 static volatile motor_all_state_t m_motor_1;
@@ -134,6 +134,7 @@ static volatile bool pid_thd_stop;
 #define M_MOTOR(is_second_motor)  (((void)is_second_motor), &m_motor_1)
 #endif
 
+// HFI采样方式与点数初始化
 static void update_hfi_samples(foc_hfi_samples samples, volatile motor_all_state_t *motor) {
 	utils_sys_lock_cnt();
 
@@ -141,7 +142,7 @@ static void update_hfi_samples(foc_hfi_samples samples, volatile motor_all_state
 	switch (samples) {
 	case HFI_SAMPLES_8:
 		motor->m_hfi.samples = 8;
-		motor->m_hfi.table_fact = 4;
+		motor->m_hfi.table_fact = 4; // 4个pwm周期,采8点数
 		motor->m_hfi.fft_bin0_func = utils_fft8_bin0;
 		motor->m_hfi.fft_bin1_func = utils_fft8_bin1;
 		motor->m_hfi.fft_bin2_func = utils_fft8_bin2;
@@ -170,6 +171,7 @@ static void update_hfi_samples(foc_hfi_samples samples, volatile motor_all_state
 #pragma GCC push_options
 #pragma GCC optimize ("Os")
 
+// 定时器的主从与触发采样初始化
 static void timer_reinit(int f_zv) {
 	utils_sys_lock_cnt();
 
@@ -335,6 +337,7 @@ static void timer_reinit(int f_zv) {
 	nvicEnableVector(TIM2_IRQn, 6);
 }
 
+// 音效初始化(频率-节拍 电压-音调)
 static void init_audio_state(volatile mc_audio_state *s) {
 	memset((void*)s, 0, sizeof(mc_audio_state));
 
@@ -348,6 +351,7 @@ static void init_audio_state(volatile mc_audio_state *s) {
 	}
 }
 
+// 1.TIM、ADC、DMA外设初始化 2.电机参数初始化 3.HFI采样方式与点数初始化 4.音效初始化(频率-节拍 电压-音调)
 void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	utils_sys_lock_cnt();// 关中断/加锁，防止初始化过程被打断
 
@@ -486,7 +490,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 		float cal_start_timeout = 10.0;
 
 		// Wait for input voltage to rise above minimum voltage
-		while (mc_interface_get_input_voltage_filtered() < m_motor_1.m_conf->l_min_vin) {
+		while (mc_interface_get_input_voltage_filtered() < m_motor_1.m_conf->l_min_vin) { // 等待电压稳定
 			chThdSleepMilliseconds(1);
 			if (UTILS_AGE_S(cal_start_time) >= cal_start_timeout) {
 				m_dccal_done = true;
@@ -516,7 +520,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 
 		// Wait for fault codes to go away
 		if (!m_dccal_done) {
-			while (mc_interface_get_fault() != FAULT_CODE_NONE) {
+			while (mc_interface_get_fault() != FAULT_CODE_NONE) { // 等待无故障启动
 				chThdSleepMilliseconds(1);
 				if (UTILS_AGE_S(cal_start_time) >= cal_start_timeout) {
 					m_dccal_done = true;
@@ -552,7 +556,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 			m_motor_2.m_conf->foc_offsets_current[2] = MCCONF_FOC_OFFSETS_CURRENT_2;
 #endif
 
-			mcpwm_foc_dc_cal(false);
+			mcpwm_foc_dc_cal(false); // 计算电流、电压偏置
 		}
 	} else {
 		m_dccal_done = true;
@@ -584,6 +588,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
 	m_init_done = true;
 }
 
+// deinit
 void mcpwm_foc_deinit(void) {
 	if (!m_init_done) {
 		return;
@@ -615,6 +620,7 @@ void mcpwm_foc_deinit(void) {
 	dmaStreamRelease(STM32_DMA_STREAM(STM32_DMA_STREAM_ID(2, 4)));
 }
 
+// 电机号
 static volatile motor_all_state_t *get_motor_now(void) {
 #ifdef HW_HAS_DUAL_MOTORS
 	return mc_interface_motor_now() == 1 ? &m_motor_1 : &m_motor_2;
@@ -627,6 +633,7 @@ bool mcpwm_foc_init_done(void) {
 	return m_init_done;
 }
 
+// 电机基础配置
 void mcpwm_foc_set_configuration(mc_configuration *configuration) {
 	get_motor_now()->m_conf = configuration;
 	foc_precalc_values((motor_all_state_t*)get_motor_now());
@@ -656,14 +663,14 @@ void mcpwm_foc_set_configuration(mc_configuration *configuration) {
 #endif
 	}
 
-	if (((1 << get_motor_now()->m_conf->foc_hfi_samples) * 8) != get_motor_now()->m_hfi.samples) {
+	if (((1 << get_motor_now()->m_conf->foc_hfi_samples) * 8) != get_motor_now()->m_hfi.samples) { // 合理采样HFI配置
 		get_motor_now()->m_control_mode = CONTROL_MODE_NONE;
 		get_motor_now()->m_state = MC_STATE_OFF;
 		stop_pwm_hw((motor_all_state_t*)get_motor_now());
 		update_hfi_samples(get_motor_now()->m_conf->foc_hfi_samples, get_motor_now());
 	}
 
-	virtual_motor_set_configuration(configuration);
+	virtual_motor_set_configuration(configuration); // 虚拟电机
 }
 
 mc_state mcpwm_foc_get_state(void) {
@@ -728,7 +735,7 @@ void mcpwm_foc_set_duty(float dutyCycle) {
  * @param dutyCycle
  * The duty cycle to use.
  */
-void mcpwm_foc_set_duty_noramp(float dutyCycle) {
+void mcpwm_foc_set_duty_noramp(float dutyCycle) { // 无斜坡
 	// TODO: Actually do this without ramping
 	mcpwm_foc_set_duty(dutyCycle);
 }
@@ -746,7 +753,7 @@ void mcpwm_foc_set_pid_speed(float rpm) {
 	if (motor->m_conf->s_pid_ramp_erpms_s > 0.0 ) {
 		if (motor->m_control_mode != CONTROL_MODE_SPEED ||
 				motor->m_state != MC_STATE_RUNNING) {
-			motor->m_speed_pid_set_rpm = mcpwm_foc_get_rpm();
+			motor->m_speed_pid_set_rpm = mcpwm_foc_get_rpm(); // 当前速度
 		}
 
 		motor->m_speed_command_rpm = rpm;
@@ -2451,6 +2458,7 @@ int mcpwm_foc_hall_detect(float current, uint8_t *hall_table, bool *result) { //
  *
  */
 #ifndef HW_USE_ALTERNATIVE_DC_CAL
+// 计算电流、电压偏置
 int mcpwm_foc_dc_cal(bool cal_undriven) {
 	// Wait max 5 seconds for DRV-fault to go away
 	int cnt = 0;
