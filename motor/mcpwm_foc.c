@@ -3664,8 +3664,10 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.vd_int = motor_now->m_motor_state.vd;
 		motor_now->m_motor_state.vq_int = motor_now->m_motor_state.vq;
 
+		// 将电流控制器的积分项设置为反电动势电压，以避免电机再次被驱动时出现电流尖峰。
+// 注意：必须考虑解耦补偿。
 		if (conf_now->foc_cc_decoupling == FOC_CC_DECOUPLING_BEMF ||
-				conf_now->foc_cc_decoupling == FOC_CC_DECOUPLING_CROSS_BEMF) {
+				conf_now->foc_cc_decoupling == FOC_CC_DECOUPLING_CROSS_BEMF) { 
 			motor_now->m_motor_state.vq_int -= motor_now->m_pll_speed * conf_now->foc_motor_flux_linkage;
 		}
 
@@ -3700,8 +3702,9 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	// Low latency speed estimation, for e.g. HFI and speed control.
 	{
+		// 低延迟速度估算，用于 HFI 和速度控制等需要快速响应的地方
 		float diff = utils_angle_difference_rad(phase_for_speed_est, motor_now->m_phase_before_speed_est);
-		utils_truncate_number(&diff, -M_PI / 3.0, M_PI / 3.0);
+		utils_truncate_number(&diff, -M_PI / 3.0, M_PI / 3.0);// 限幅防飞
 
 		UTILS_LP_FAST(motor_now->m_speed_est_fast, diff / dt, 0.01);
 		UTILS_NAN_ZERO(motor_now->m_speed_est_fast);
@@ -3716,8 +3719,8 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		UTILS_NAN_ZERO(motor_now->m_speed_est_fast_corrected);
 
 		// pll wind-up protection
-		utils_truncate_number_abs((float*)&motor_now->m_pll_speed, fabsf(motor_now->m_speed_est_fast) * 3.0);
-
+		// 用低延迟测出的真实瞬时速度（m_speed_est_fast）的 3 倍，作为 PLL 输出速度的硬性上限
+		utils_truncate_number_abs((float*)&motor_now->m_pll_speed, fabsf(motor_now->m_speed_est_fast) * 3.0); 
 		motor_now->m_phase_before_speed_est = phase_for_speed_est;
 		motor_now->m_phase_before_speed_est_corrected = motor_now->m_motor_state.phase;
 	}
@@ -3753,18 +3756,19 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	utils_norm_angle(&angle_now);
 
-	if (conf_now->p_pid_ang_div > 0.98 && conf_now->p_pid_ang_div < 1.02) {
+	// 针对不同减速比
+	if (conf_now->p_pid_ang_div > 0.98 && conf_now->p_pid_ang_div < 1.02) { // 快速通道（分频系数为 1 时）
 		motor_now->m_pos_pid_now = angle_now;
-	} else {
-		if (angle_now < 90.0 && motor_now->m_pid_div_angle_last > 270.0) {
+	} else {// 迟滞比较
+		if (angle_now < 90.0 && motor_now->m_pid_div_angle_last > 270.0) {// 正转跨越 0/360 度边界（从 35x 度转到 0x 度）
 			motor_now->m_pid_div_angle_accumulator += 360.0 / conf_now->p_pid_ang_div;
 			utils_norm_angle((float*)&motor_now->m_pid_div_angle_accumulator);
-		} else if (angle_now > 270.0 && motor_now->m_pid_div_angle_last < 90.0) {
+		} else if (angle_now > 270.0 && motor_now->m_pid_div_angle_last < 90.0) {// 反转跨越 0/360 度边界（从 0x 度转到 35x 度）
 			motor_now->m_pid_div_angle_accumulator -= 360.0 / conf_now->p_pid_ang_div;
 			utils_norm_angle((float*)&motor_now->m_pid_div_angle_accumulator);
 		}
 
-		motor_now->m_pid_div_angle_last = angle_now;
+		motor_now->m_pid_div_angle_last = angle_now;// 记录当前角度，供下一次判断使用
 
 		motor_now->m_pos_pid_now = motor_now->m_pid_div_angle_accumulator + angle_now / conf_now->p_pid_ang_div;
 		utils_norm_angle((float*)&motor_now->m_pos_pid_now);
