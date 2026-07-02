@@ -1462,6 +1462,7 @@ static int measure_r_l_imax(float current_min, float current_max, float max_powe
         }
     }
 
+    // 高精度测量电阻
     fault = mcpwm_foc_measure_resistance(i_last, 100, true, r);
     if (fault != FAULT_CODE_NONE) {
         mempools_free_mcconf(mcconf);
@@ -1629,6 +1630,7 @@ static void detect_sensors_task(void *arg)
  */
 int conf_general_detect_apply_all_foc(float max_power_loss, bool store_mcconf_on_success, bool send_mcconf_on_success)
 {
+    // 电阻、电感、磁链、HALL等位置传感器校准
     int result = -1;
 
     int faultM1 = FAULT_CODE_NONE;
